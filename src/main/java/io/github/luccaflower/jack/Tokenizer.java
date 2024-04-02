@@ -110,7 +110,7 @@ public class Tokenizer {
     }
 
     private static class StringLiteralTokenizer {
-        private static final Pattern STRING_LITERAL = Pattern.compile("\"([^\"^\n])+\"");
+        private static final Pattern STRING_LITERAL = Pattern.compile("\"([^\"^\n])*\"");
 
         public Optional<ParseResult> parse(String input) {
             var matcher = STRING_LITERAL.matcher(input);

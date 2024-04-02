@@ -103,4 +103,9 @@ class TokenizerTest {
                 """;
         assertThat(tokenizer.parse(input)).isEmpty();
     }
+
+    @Test
+    void aStringLiteralMayBeEmpty() throws Tokenizer.SyntaxError {
+        assertThat(tokenizer.parse("\"\"")).first().isEqualTo(new Token.StringLiteral(""));
+    }
 }
