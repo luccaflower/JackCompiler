@@ -51,7 +51,11 @@ class TokenizerTest {
 
     @Test
     void stringLiteralsAreSingleLineOnly() {
-        assertThatThrownBy(() -> tokenizer.parse("\"string \n literal\""))
+        String input = """
+        "string
+        literal"
+        """;
+        assertThatThrownBy(() -> tokenizer.parse(input))
                 .isInstanceOf(Tokenizer.SyntaxError.class);
     }
 
@@ -72,4 +76,31 @@ class TokenizerTest {
                 .isEqualTo(new Token.Identifier("_identifier"));
     }
 
+    @Test
+    void skipsLineComments() throws Tokenizer.SyntaxError {
+        String input = "//comment class {}";
+        assertThat(tokenizer.parse(input)).isEmpty();
+    }
+
+    @Test
+    void keepsParsingTokensOnNewLineAfterComment() throws Tokenizer.SyntaxError {
+        String input = """
+                //comment
+                class""";
+        assertThat(tokenizer.parse(input)).first().isEqualTo(new Token.Keyword(CLASS));
+    }
+
+    @Test
+    void skipsBlockComments() throws Tokenizer.SyntaxError {
+        assertThat(tokenizer.parse("/*class {}*/")).isEmpty();
+    }
+
+    @Test
+    void blockCommentsMaySpanMultipleLines() throws Tokenizer.SyntaxError {
+        var input = """
+                /*block
+                comment*/
+                """;
+        assertThat(tokenizer.parse(input)).isEmpty();
+    }
 }

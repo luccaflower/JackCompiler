@@ -16,6 +16,8 @@ public class Tokenizer {
     private final IdentifierTokenizer identifierTokenizer = new IdentifierTokenizer();
 
     private static final Pattern WHITESPACE = Pattern.compile("(\\s+)|\\n|\\t");
+    private static final Pattern LINE_COMMENT = Pattern.compile("//.*");
+    private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*\\*/", Pattern.DOTALL);
 
     public List<Token> parse(String input) throws SyntaxError {
         var cursor = 0;
@@ -27,6 +29,17 @@ public class Tokenizer {
                 cursor += whitespace.end();
                 continue;
             }
+            var lineComment = LINE_COMMENT.matcher(rest);
+            if (lineComment.lookingAt()) {
+                cursor += lineComment.end();
+                continue;
+            }
+            var blockComment = BLOCK_COMMENT.matcher(rest);
+            if (blockComment.lookingAt()) {
+                cursor+= blockComment.end();
+                continue;
+            }
+
             var parsed = keywordTokenizer.parse(rest)
                     .or(() -> symbolTokenizer.parse(rest))
                     .or(() -> integerLiteralTokenizer.parse(rest))
