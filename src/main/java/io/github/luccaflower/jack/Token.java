@@ -11,8 +11,8 @@ public sealed interface Token {
 
         CLASS("class"), METHOD("method"), FUNCTION("function"), CONSTRUCTOR("constructor"), INT("int"),
         BOOLEAN("boolean"), CHAR("char"), VOID("void"), VAR("var"), STATIC("static"), FIELD("field"), LET("let"),
-        DO("do"), IF("if"), ELSE("else"), WHILE("while"), RETURN("return"), TRUE("true"), FALSE("false"),
-        NULL("null"), THIS("this");
+        DO("do"), IF("if"), ELSE("else"), WHILE("while"), RETURN("return"), TRUE("true"), FALSE("false"), NULL("null"),
+        THIS("this");
 
         private final String keyword;
 
@@ -22,9 +22,9 @@ public sealed interface Token {
 
         public static KeywordType from(String name) {
             return Arrays.stream(values())
-                    .filter(k -> k.keyword.equals(name))
-                    .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown keyword: ".concat(name)));
+                .filter(k -> k.keyword.equals(name))
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown keyword: ".concat(name)));
         }
 
         public String keyword() {
@@ -38,25 +38,10 @@ public sealed interface Token {
 
     enum SymbolType {
 
-        OPEN_BRACE('{'),
-        CLOSE_BRACE('}'),
-        OPEN_PAREN('('),
-        CLOSE_PAREN(')'),
-        OPEN_SQUARE('['),
-        CLOSE_SQUARE(']'),
-        DOT('.'),
-        COMMA(','),
-        SEMICOLON(';'),
-        PLUS('+'),
-        MINUS('-'),
-        ASTERISK('*'),
-        SLASH('/'),
-        AMPERSAND('&'),
-        PIPE('|'),
-        LESS_THAN('<'),
-        GREATER_THAN('>'),
-        EQUALS('='),
-        TILDE('~');
+        OPEN_BRACE('{'), CLOSE_BRACE('}'), OPEN_PAREN('('), CLOSE_PAREN(')'), OPEN_SQUARE('['), CLOSE_SQUARE(']'),
+        DOT('.'), COMMA(','), SEMICOLON(';'), PLUS('+'), MINUS('-'), ASTERISK('*'), SLASH('/'), AMPERSAND('&'),
+        PIPE('|'), LESS_THAN('<'), GREATER_THAN('>'), EQUALS('='), TILDE('~');
+
         private final char symbol;
 
         SymbolType(char symbol) {
@@ -65,14 +50,15 @@ public sealed interface Token {
 
         public static SymbolType from(char c) {
             return Arrays.stream(values())
-                    .filter(t -> t.symbol == c)
-                    .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException("Unknown symbol: ".concat(String.valueOf(c))));
+                .filter(t -> t.symbol == c)
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException("Unknown symbol: ".concat(String.valueOf(c))));
         }
 
         public char symbol() {
             return symbol;
         }
+
     }
 
     record IntegerLiteral(int i) implements Token {
@@ -88,4 +74,5 @@ public sealed interface Token {
 
     record Identifier(String name) implements Token {
     }
+
 }

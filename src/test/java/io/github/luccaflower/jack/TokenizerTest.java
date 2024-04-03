@@ -15,9 +15,7 @@ class TokenizerTest {
 
     @Test
     void tokenizesClassKeyword() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("class"))
-                .flatMap(List::of)
-                .isEqualTo(List.of(new Token.Keyword(CLASS)));
+        assertThat(tokenizer.parse("class")).flatMap(List::of).isEqualTo(List.of(new Token.Keyword(CLASS)));
     }
 
     @Test
@@ -27,9 +25,9 @@ class TokenizerTest {
 
     @Test
     void parsesSymbols() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("{}"))
-                .flatMap(List::of)
-                .isEqualTo(List.of(new Token.Symbol(Token.SymbolType.OPEN_BRACE), new Token.Symbol(Token.SymbolType.CLOSE_BRACE)));
+        assertThat(tokenizer.parse("{}")).flatMap(List::of)
+            .isEqualTo(List.of(new Token.Symbol(Token.SymbolType.OPEN_BRACE),
+                    new Token.Symbol(Token.SymbolType.CLOSE_BRACE)));
     }
 
     @Test
@@ -39,49 +37,42 @@ class TokenizerTest {
 
     @Test
     void integerLiteralsAreAMaximumOf16BitsSigned() {
-        assertThatThrownBy(() -> tokenizer.parse(String.valueOf(0xFFFF)))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> tokenizer.parse(String.valueOf(0xFFFF))).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void parsesStringLiterals() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("\"string literal\"")).first()
-                .isEqualTo(new Token.StringLiteral("string literal"));
+        assertThat(tokenizer.parse("\"string literal\"")).first().isEqualTo(new Token.StringLiteral("string literal"));
     }
 
     @Test
     void stringLiteralsMayNotContainDoubleQuotes() {
-        assertThatThrownBy(() -> tokenizer.parse("\"string \" literal\""))
-                .isInstanceOf(Tokenizer.SyntaxError.class);
+        assertThatThrownBy(() -> tokenizer.parse("\"string \" literal\"")).isInstanceOf(Tokenizer.SyntaxError.class);
     }
 
     @Test
     void stringLiteralsAreSingleLineOnly() {
         String input = """
-        "string
-        literal"
-        """;
-        assertThatThrownBy(() -> tokenizer.parse(input))
-                .isInstanceOf(Tokenizer.SyntaxError.class);
+                "string
+                literal"
+                """;
+        assertThatThrownBy(() -> tokenizer.parse(input)).isInstanceOf(Tokenizer.SyntaxError.class);
     }
 
     @Test
     void parsesIdentifiers() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("identifier")).first()
-                .isEqualTo(new Token.Identifier("identifier"));
+        assertThat(tokenizer.parse("identifier")).first().isEqualTo(new Token.Identifier("identifier"));
     }
 
     @Test
     void identifiersMayNotStartWithNumbers() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("0identifier"))
-                .flatMap(List::of)
-                .isEqualTo(List.of(new Token.IntegerLiteral(0), new Token.Identifier("identifier")));
+        assertThat(tokenizer.parse("0identifier")).flatMap(List::of)
+            .isEqualTo(List.of(new Token.IntegerLiteral(0), new Token.Identifier("identifier")));
     }
 
     @Test
     void identifiersMayContainerUnderscores() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("_identifier")).first()
-                .isEqualTo(new Token.Identifier("_identifier"));
+        assertThat(tokenizer.parse("_identifier")).first().isEqualTo(new Token.Identifier("_identifier"));
     }
 
     @Test
@@ -116,4 +107,5 @@ class TokenizerTest {
     void aStringLiteralMayBeEmpty() throws Tokenizer.SyntaxError {
         assertThat(tokenizer.parse("\"\"")).first().isEqualTo(new Token.StringLiteral(""));
     }
+
 }
