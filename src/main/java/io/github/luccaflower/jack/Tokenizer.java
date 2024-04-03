@@ -1,9 +1,6 @@
 package io.github.luccaflower.jack;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -19,9 +16,9 @@ public class Tokenizer {
     private static final Pattern LINE_COMMENT = Pattern.compile("//.*");
     private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*\\*/", Pattern.DOTALL);
 
-    public List<Token> parse(String input) throws SyntaxError {
+    public Queue<Token> parse(String input) throws SyntaxError {
         var cursor = 0;
-        var list = new ArrayList<Token>();
+        var list = new ArrayDeque<Token>();
         while (cursor < input.length()) {
             var rest = input.substring(cursor);
             var whitespace = WHITESPACE.matcher(rest);

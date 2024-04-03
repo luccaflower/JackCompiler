@@ -2,7 +2,9 @@ package io.github.luccaflower.jack;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Queue;
 
 import static io.github.luccaflower.jack.Token.KeywordType.CLASS;
 import static org.assertj.core.api.Assertions.*;
@@ -13,7 +15,9 @@ class TokenizerTest {
 
     @Test
     void tokenizesClassKeyword() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("class")).isEqualTo(List.of(new Token.Keyword(CLASS)));
+        assertThat(tokenizer.parse("class"))
+                .flatMap(List::of)
+                .isEqualTo(List.of(new Token.Keyword(CLASS)));
     }
 
     @Test
@@ -23,7 +27,9 @@ class TokenizerTest {
 
     @Test
     void parsesSymbols() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("{}")).isEqualTo(List.of(new Token.Symbol(Token.SymbolType.OPEN_BRACE), new Token.Symbol(Token.SymbolType.CLOSE_BRACE)));
+        assertThat(tokenizer.parse("{}"))
+                .flatMap(List::of)
+                .isEqualTo(List.of(new Token.Symbol(Token.SymbolType.OPEN_BRACE), new Token.Symbol(Token.SymbolType.CLOSE_BRACE)));
     }
 
     @Test
@@ -67,7 +73,9 @@ class TokenizerTest {
 
     @Test
     void identifiersMayNotStartWithNumbers() throws Tokenizer.SyntaxError {
-        assertThat(tokenizer.parse("0identifier")).isEqualTo(List.of(new Token.IntegerLiteral(0), new Token.Identifier("identifier")));
+        assertThat(tokenizer.parse("0identifier"))
+                .flatMap(List::of)
+                .isEqualTo(List.of(new Token.IntegerLiteral(0), new Token.Identifier("identifier")));
     }
 
     @Test
