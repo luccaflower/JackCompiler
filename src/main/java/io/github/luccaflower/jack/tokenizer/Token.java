@@ -1,4 +1,4 @@
-package io.github.luccaflower.jack;
+package io.github.luccaflower.jack.tokenizer;
 
 import java.util.Arrays;
 

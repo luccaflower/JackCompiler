@@ -1,12 +1,12 @@
 package io.github.luccaflower.jack;
 
+import io.github.luccaflower.jack.tokenizer.Token;
+import io.github.luccaflower.jack.tokenizer.Tokenizer;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayDeque;
 import java.util.List;
-import java.util.Queue;
 
-import static io.github.luccaflower.jack.Token.KeywordType.CLASS;
+import static io.github.luccaflower.jack.tokenizer.Token.KeywordType.CLASS;
 import static org.assertj.core.api.Assertions.*;
 
 class TokenizerTest {
