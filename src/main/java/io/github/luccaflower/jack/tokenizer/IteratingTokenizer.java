@@ -2,10 +2,12 @@ package io.github.luccaflower.jack.tokenizer;
 
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class IteratingTokenizer {
+
     private final KeywordTokenizer keywordTokenizer = new KeywordTokenizer();
 
     private final SymbolTokenizer symbolTokenizer = new SymbolTokenizer();
@@ -21,38 +23,55 @@ public class IteratingTokenizer {
     private static final Pattern LINE_COMMENT = Pattern.compile("//.*");
 
     private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*\\*/", Pattern.DOTALL);
+
     private final String input;
+
     private int cursor = 0;
 
     public IteratingTokenizer(String input) {
         this.input = input;
         cursor += skipWhitespacesAndCommentsButDontMutate(input);
     }
+
     public boolean hasMoreTokens() {
         return !input.substring(cursor).isBlank();
     }
+
     public Token advance() throws SyntaxError {
         var rest = input.substring(cursor);
         if (rest.isBlank()) {
             throw new IndexOutOfBoundsException("input end reached");
         }
-        var parsed = getNext(rest).orElseThrow(() -> new SyntaxError("Unexpected token: ".concat(rest.split("\\s")[0])));
+        var parsed = getNext(rest)
+            .orElseThrow(() -> new SyntaxError("Unexpected token: ".concat(rest.split("\\s")[0])));
         cursor += parsed.length();
         cursor += skipWhitespacesAndCommentsButDontMutate(input.substring(cursor));
         return parsed.token();
     }
 
+    public Token remove() throws SyntaxError {
+        return advance();
+    }
+
     public Optional<Token> peek() {
         return getNext(input.substring(cursor)).map(ParseResult::token);
     }
-    private Optional<ParseResult> getNext(String rest) {
-        return keywordTokenizer.parse(rest)
-                .or(() -> symbolTokenizer.parse(rest))
-                .or(() -> integerLiteralTokenizer.parse(rest))
-                .or(() -> stringLiteralTokenizer.parse(rest))
-                .or(() -> identifierTokenizer.parse(rest));
+
+    public IteratingTokenizer lookAhead(int count) throws SyntaxError {
+        IteratingTokenizer iteratingTokenizer = new IteratingTokenizer(input.substring(cursor));
+        for (int i = 0; i < count; i++) {
+            iteratingTokenizer.advance();
+        }
+        return iteratingTokenizer;
     }
 
+    private Optional<ParseResult> getNext(String rest) {
+        return keywordTokenizer.parse(rest)
+            .or(() -> symbolTokenizer.parse(rest))
+            .or(() -> integerLiteralTokenizer.parse(rest))
+            .or(() -> stringLiteralTokenizer.parse(rest))
+            .or(() -> identifierTokenizer.parse(rest));
+    }
 
     private int skipWhitespacesAndCommentsButDontMutate(String rest) {
         var advancement = 0;
@@ -172,4 +191,5 @@ public class IteratingTokenizer {
 
     public record ParseResult(Token token, int length) {
     }
+
 }

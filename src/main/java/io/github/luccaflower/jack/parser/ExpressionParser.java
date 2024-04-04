@@ -1,5 +1,7 @@
 package io.github.luccaflower.jack.parser;
 
+import io.github.luccaflower.jack.tokenizer.IteratingTokenizer;
+import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 import java.util.ArrayDeque;
@@ -9,37 +11,35 @@ import java.util.Queue;
 
 public class ExpressionParser {
 
-    public Optional<Expression> parse(Queue<Token> tokens) {
+    public Optional<Expression> parse(IteratingTokenizer tokens) {
         return new TermParser().parse(tokens)
-                .map(t -> new Expression(t, new OperatorParser().parse(tokens)
-                        .map(o -> new OpAndExpression(o, new ExpressionParser().parse(tokens).get()))));
+            .map(term -> new Expression(term, new OperatorParser().parse(tokens)
+                .map(op -> new ExpressionParser().parse(tokens)
+                    .map(e -> new OpAndExpression(op, e))
+                    .orElseThrow(
+                            () -> new SyntaxError("Invalid continuation to %s: %s".formatted(op, tokens.peek()))))));
     }
 
     public static class OperatorParser {
-        public Optional<Operator> parse (Queue<Token> tokens) {
-            if (tokens.peek() instanceof Token.Symbol s) {
-                return switch (s.type()) {
+
+        public Optional<Operator> parse(IteratingTokenizer tokens) throws SyntaxError {
+            return tokens.peek()
+                .filter(t -> t instanceof Token.Symbol)
+                .flatMap(t -> switch (((Token.Symbol) t).type()) {
                     case PLUS, MINUS, ASTERISK, SLASH, AMPERSAND, PIPE, LESS_THAN, GREATER_THAN, EQUALS -> {
-                        tokens.remove();
-                        yield Optional.of(Operator.from(s));
+                        tokens.advance();
+                        yield Optional.of(Operator.from((Token.Symbol) t));
                     }
                     default -> Optional.empty();
-                };
-            } else {
-                return Optional.empty();
-            }
+
+                });
         }
+
     }
+
     public enum Operator {
-        PLUS,
-        MINUS,
-        TIMES,
-        DIVIDED_BY,
-        BITWISE_AND,
-        BITWISE_OR,
-        LESS_THAN,
-        GREATER_THAN,
-        EQUALS;
+
+        PLUS, MINUS, TIMES, DIVIDED_BY, BITWISE_AND, BITWISE_OR, LESS_THAN, GREATER_THAN, EQUALS;
 
         public static Operator from(Token.Symbol s) {
             return switch (s.type()) {
@@ -55,74 +55,66 @@ public class ExpressionParser {
                 default -> throw new IllegalArgumentException("Invalid operator " + s.type());
             };
         }
+
     }
 
-    public record Expression(Term term, Optional<OpAndExpression> continuation) {}
+    public record Expression(Term term, Optional<OpAndExpression> continuation) {
+    }
 
-    public record OpAndExpression(Operator op, Expression term) {}
+    public record OpAndExpression(Operator op, Expression term) {
+    }
 
     public class TermParser {
-        public Optional<Term> parse(Queue<Token> tokens) {
+
+        public Optional<Term> parse(IteratingTokenizer tokens) {
             return new ConstantParser().parse(tokens)
-                    .or(() -> new VarNameParser().parse(tokens))
-                    .or(() -> new KeywordLiteralParser().parse(tokens))
-                    .or(() -> new UnaryOpTermParser().parse(tokens));
+                .or(() -> new VarNameParser().parse(tokens))
+                .or(() -> new KeywordLiteralParser().parse(tokens))
+                .or(() -> new UnaryOpTermParser().parse(tokens));
         }
 
     }
+
     public static class ConstantParser {
-        public Optional<Term> parse(Queue<Token> tokens) {
-            return switch (Objects.requireNonNull(tokens.peek())) {
-                case Token t when (t instanceof Token.StringLiteral || t instanceof Token.IntegerLiteral) ->
-                        Optional.of(new Term.Constant(tokens.remove()));
-                default -> Optional.empty();
-            };
+
+        public Optional<Term> parse(IteratingTokenizer tokens) throws SyntaxError {
+            return tokens.peek()
+                .filter(t -> t instanceof Token.StringLiteral || t instanceof Token.IntegerLiteral)
+                .map(t -> new Term.Constant(tokens.remove()));
         }
+
     }
 
     public class VarNameParser {
-        public Optional<Term> parse(Queue<Token> tokens) {
-            if (tokens.peek() instanceof Token.Identifier) {
-                return Optional.of(Term.VarName.from(tokens.remove()));
-            } else {
-                return Optional.empty();
-            }
+
+        public Optional<Term> parse(IteratingTokenizer tokens) throws SyntaxError {
+            return tokens.peek().filter(t -> t instanceof Token.Identifier).map(Term.VarName::from);
         }
+
     }
 
     public static class KeywordLiteralParser {
-        public Optional<Term> parse(Queue<Token> tokens) {
-            if (tokens.peek() instanceof Token.Keyword k) {
-                tokens.remove();
-                return Optional.of(new Term.KeywordLiteral(k.type()));
-            } else {
-                return Optional.empty();
-            }
+
+        public Optional<Term> parse(IteratingTokenizer tokens) throws SyntaxError {
+            return tokens.peek()
+                .filter(t -> t instanceof Token.Keyword)
+                .map(t -> new Term.KeywordLiteral(((Token.Keyword) tokens.remove()).type()));
         }
+
     }
 
     public class UnaryOpTermParser {
-        public Optional<Term> parse(Queue<Token> tokens) {
-            if (tokens.peek() instanceof Token.Symbol s) {
-                //TODO: refactor this mess
-                return switch (s.type()) {
-                    case TILDE, MINUS -> {
-                        var copy = new ArrayDeque<>(tokens);
-                        copy.remove(); //what are we even DOING
-                        Optional<Term> term = new TermParser().parse(copy)
-                                .map(t -> new Term.UnaryOpTerm(Term.UnaryOp.from(s), t));
-                        term.ifPresent(t -> {
-                            tokens.remove(); //this is what happens when you try to mix functional and procedural programming
-                            tokens.remove();
-                        });
-                        yield term;
-                    }
-                    default -> Optional.empty();
-                };
 
-            } else {
-                return Optional.empty();
-            }
+        public Optional<Term> parse(IteratingTokenizer tokens) {
+            return tokens.peek()
+                .filter(t -> t instanceof Token.Symbol)
+                .flatMap(t -> switch (((Token.Symbol) t).type()) {
+                    case TILDE, MINUS -> Optional.of(Term.UnaryOp.from((Token.Symbol) t));
+                    default -> Optional.empty();
+                })
+                .flatMap(op -> new TermParser().parse(tokens.lookAhead(1)).map(term -> new Term.UnaryOpTerm(op, term)));
         }
+
     }
+
 }

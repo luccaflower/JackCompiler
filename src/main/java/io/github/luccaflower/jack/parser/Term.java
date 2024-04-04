@@ -3,6 +3,7 @@ package io.github.luccaflower.jack.parser;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 public sealed interface Term {
+
     record Constant(Token literal) implements Term {
         public Constant {
             if (!(literal instanceof Token.StringLiteral) && !(literal instanceof Token.IntegerLiteral)) {
@@ -15,7 +16,8 @@ public sealed interface Term {
         public static VarName from(Token token) {
             if (token instanceof Token.Identifier(String name)) {
                 return new VarName(name);
-            } else {
+            }
+            else {
                 throw new IllegalArgumentException("VarName must be an identifier");
             }
         }
@@ -35,6 +37,7 @@ public sealed interface Term {
     }
 
     enum UnaryOp {
+
         NEGATIVE, NOT;
 
         public static UnaryOp from(Token.Symbol symbol) {
@@ -44,6 +47,7 @@ public sealed interface Term {
                 default -> throw new IllegalArgumentException("Unary operator must be either ~ or -");
             };
         }
+
     }
 
 }
