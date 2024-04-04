@@ -1,11 +1,11 @@
 package io.github.luccaflower.jack.tokenizer;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class Tokenizer {
-
+public class IteratingTokenizer {
     private final KeywordTokenizer keywordTokenizer = new KeywordTokenizer();
 
     private final SymbolTokenizer symbolTokenizer = new SymbolTokenizer();
@@ -21,42 +21,64 @@ public class Tokenizer {
     private static final Pattern LINE_COMMENT = Pattern.compile("//.*");
 
     private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*\\*/", Pattern.DOTALL);
+    private final String input;
+    private int cursor = 0;
 
-    public Queue<Token> parse(String input) throws SyntaxError {
-        var cursor = 0;
-        var list = new ArrayDeque<Token>();
-        while (cursor < input.length()) {
-            var rest = input.substring(cursor);
-            var whitespace = WHITESPACE.matcher(rest);
-            if (whitespace.lookingAt()) {
-                cursor += whitespace.end();
-                continue;
-            }
-            var lineComment = LINE_COMMENT.matcher(rest);
-            if (lineComment.lookingAt()) {
-                cursor += lineComment.end();
-                continue;
-            }
-            var blockComment = BLOCK_COMMENT.matcher(rest);
-            if (blockComment.lookingAt()) {
-                cursor += blockComment.end();
-                continue;
-            }
+    public IteratingTokenizer(String input) {
+        this.input = input;
+        cursor += skipWhitespacesAndCommentsButDontMutate(input);
+    }
+    public boolean hasMoreTokens() {
+        return !input.substring(cursor).isBlank();
+    }
+    public Token advance() throws SyntaxError {
+        var rest = input.substring(cursor);
+        if (rest.isBlank()) {
+            throw new IndexOutOfBoundsException("input end reached");
+        }
+        var parsed = getNext(rest).orElseThrow(() -> new SyntaxError("Unexpected token: ".concat(rest.split("\\s")[0])));
+        cursor += parsed.length();
+        cursor += skipWhitespacesAndCommentsButDontMutate(input.substring(cursor));
+        return parsed.token();
+    }
 
-            var parsed = keywordTokenizer.parse(rest)
+    public Optional<Token> peek() {
+        return getNext(input.substring(cursor)).map(ParseResult::token);
+    }
+    private Optional<ParseResult> getNext(String rest) {
+        return keywordTokenizer.parse(rest)
                 .or(() -> symbolTokenizer.parse(rest))
                 .or(() -> integerLiteralTokenizer.parse(rest))
                 .or(() -> stringLiteralTokenizer.parse(rest))
-                .or(() -> identifierTokenizer.parse(rest))
-                .orElseThrow(() -> new SyntaxError("Unexpected token: ".concat(rest.split("\\s")[0])));
-            cursor += parsed.length();
-            list.add(parsed.token());
-        }
-
-        return list;
+                .or(() -> identifierTokenizer.parse(rest));
     }
 
-    private static class KeywordTokenizer {
+
+    private int skipWhitespacesAndCommentsButDontMutate(String rest) {
+        var advancement = 0;
+        var continueSkipping = true;
+        while (continueSkipping) {
+            var whitespace = WHITESPACE.matcher(rest.substring(advancement));
+            if (whitespace.lookingAt()) {
+                advancement += whitespace.end();
+                continue;
+            }
+            var lineComment = LINE_COMMENT.matcher(rest.substring(advancement));
+            if (lineComment.lookingAt()) {
+                advancement += lineComment.end();
+                continue;
+            }
+            var blockComment = BLOCK_COMMENT.matcher(rest.substring(advancement));
+            if (blockComment.lookingAt()) {
+                advancement += blockComment.end();
+                continue;
+            }
+            continueSkipping = false;
+        }
+        return advancement;
+    }
+
+    public static class KeywordTokenizer {
 
         private static final Pattern KEYWORD = Pattern
             .compile("(%s)".formatted(Arrays.stream(Token.KeywordType.values())
@@ -76,7 +98,7 @@ public class Tokenizer {
 
     }
 
-    private static class SymbolTokenizer {
+    public static class SymbolTokenizer {
 
         private static final Pattern SYMBOL = Pattern.compile("(%s)".formatted(Arrays.stream(Token.SymbolType.values())
             .map(Token.SymbolType::symbol)
@@ -97,7 +119,7 @@ public class Tokenizer {
 
     }
 
-    private static class IntegerLiteralTokenizer {
+    public static class IntegerLiteralTokenizer {
 
         private static final Pattern INTEGER = Pattern.compile("\\d+");
 
@@ -114,7 +136,7 @@ public class Tokenizer {
 
     }
 
-    private static class StringLiteralTokenizer {
+    public static class StringLiteralTokenizer {
 
         private static final Pattern STRING_LITERAL = Pattern.compile("\"([^\"^\n])*\"");
 
@@ -131,7 +153,7 @@ public class Tokenizer {
 
     }
 
-    private static class IdentifierTokenizer {
+    public static class IdentifierTokenizer {
 
         private static final Pattern IDENTIFIER = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
 
@@ -148,15 +170,6 @@ public class Tokenizer {
 
     }
 
-    private record ParseResult(Token token, int length) {
+    public record ParseResult(Token token, int length) {
     }
-
-    public static class SyntaxError extends Exception {
-
-        public SyntaxError(String message) {
-            super(message);
-        }
-
-    }
-
 }

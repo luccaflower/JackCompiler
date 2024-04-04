@@ -1,7 +1,8 @@
 package io.github.luccaflower.jack;
 
+import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
-import io.github.luccaflower.jack.tokenizer.Tokenizer;
+import io.github.luccaflower.jack.tokenizer.AllInOneGoTokenizer;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -11,27 +12,27 @@ import static org.assertj.core.api.Assertions.*;
 
 class TokenizerTest {
 
-    private final Tokenizer tokenizer = new Tokenizer();
+    private final AllInOneGoTokenizer tokenizer = new AllInOneGoTokenizer();
 
     @Test
-    void tokenizesClassKeyword() throws Tokenizer.SyntaxError {
+    void tokenizesClassKeyword() throws SyntaxError {
         assertThat(tokenizer.parse("class")).flatMap(List::of).isEqualTo(List.of(new Token.Keyword(CLASS)));
     }
 
     @Test
-    void skipsAllKindsOfWhitespace() throws Tokenizer.SyntaxError {
+    void skipsAllKindsOfWhitespace() throws SyntaxError {
         assertThat(tokenizer.parse(" \t\nclass")).first().isEqualTo(new Token.Keyword(CLASS));
     }
 
     @Test
-    void parsesSymbols() throws Tokenizer.SyntaxError {
+    void parsesSymbols() throws SyntaxError {
         assertThat(tokenizer.parse("{}")).flatMap(List::of)
             .isEqualTo(List.of(new Token.Symbol(Token.SymbolType.OPEN_BRACE),
                     new Token.Symbol(Token.SymbolType.CLOSE_BRACE)));
     }
 
     @Test
-    void parsesIntegerLiterals() throws Tokenizer.SyntaxError {
+    void parsesIntegerLiterals() throws SyntaxError {
         assertThat(tokenizer.parse("12345")).first().isEqualTo(new Token.IntegerLiteral(12345));
     }
 
@@ -41,13 +42,13 @@ class TokenizerTest {
     }
 
     @Test
-    void parsesStringLiterals() throws Tokenizer.SyntaxError {
+    void parsesStringLiterals() throws SyntaxError {
         assertThat(tokenizer.parse("\"string literal\"")).first().isEqualTo(new Token.StringLiteral("string literal"));
     }
 
     @Test
     void stringLiteralsMayNotContainDoubleQuotes() {
-        assertThatThrownBy(() -> tokenizer.parse("\"string \" literal\"")).isInstanceOf(Tokenizer.SyntaxError.class);
+        assertThatThrownBy(() -> tokenizer.parse("\"string \" literal\"")).isInstanceOf(SyntaxError.class);
     }
 
     @Test
@@ -56,33 +57,33 @@ class TokenizerTest {
                 "string
                 literal"
                 """;
-        assertThatThrownBy(() -> tokenizer.parse(input)).isInstanceOf(Tokenizer.SyntaxError.class);
+        assertThatThrownBy(() -> tokenizer.parse(input)).isInstanceOf(SyntaxError.class);
     }
 
     @Test
-    void parsesIdentifiers() throws Tokenizer.SyntaxError {
+    void parsesIdentifiers() throws SyntaxError {
         assertThat(tokenizer.parse("identifier")).first().isEqualTo(new Token.Identifier("identifier"));
     }
 
     @Test
-    void identifiersMayNotStartWithNumbers() throws Tokenizer.SyntaxError {
+    void identifiersMayNotStartWithNumbers() throws SyntaxError {
         assertThat(tokenizer.parse("0identifier")).flatMap(List::of)
             .isEqualTo(List.of(new Token.IntegerLiteral(0), new Token.Identifier("identifier")));
     }
 
     @Test
-    void identifiersMayContainerUnderscores() throws Tokenizer.SyntaxError {
+    void identifiersMayContainerUnderscores() throws SyntaxError {
         assertThat(tokenizer.parse("_identifier")).first().isEqualTo(new Token.Identifier("_identifier"));
     }
 
     @Test
-    void skipsLineComments() throws Tokenizer.SyntaxError {
+    void skipsLineComments() throws SyntaxError {
         String input = "//comment class {}";
         assertThat(tokenizer.parse(input)).isEmpty();
     }
 
     @Test
-    void keepsParsingTokensOnNewLineAfterComment() throws Tokenizer.SyntaxError {
+    void keepsParsingTokensOnNewLineAfterComment() throws SyntaxError {
         String input = """
                 //comment
                 class""";
@@ -90,12 +91,12 @@ class TokenizerTest {
     }
 
     @Test
-    void skipsBlockComments() throws Tokenizer.SyntaxError {
+    void skipsBlockComments() throws SyntaxError {
         assertThat(tokenizer.parse("/*class {}*/")).isEmpty();
     }
 
     @Test
-    void blockCommentsMaySpanMultipleLines() throws Tokenizer.SyntaxError {
+    void blockCommentsMaySpanMultipleLines() throws SyntaxError {
         var input = """
                 /*block
                 comment*/
@@ -104,7 +105,7 @@ class TokenizerTest {
     }
 
     @Test
-    void aStringLiteralMayBeEmpty() throws Tokenizer.SyntaxError {
+    void aStringLiteralMayBeEmpty() throws SyntaxError {
         assertThat(tokenizer.parse("\"\"")).first().isEqualTo(new Token.StringLiteral(""));
     }
 

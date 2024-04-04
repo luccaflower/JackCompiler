@@ -108,11 +108,11 @@ public class ExpressionParser {
                 return switch (s.type()) {
                     case TILDE, MINUS -> {
                         var copy = new ArrayDeque<>(tokens);
-                        copy.remove();
+                        copy.remove(); //what are we even DOING
                         Optional<Term> term = new TermParser().parse(copy)
                                 .map(t -> new Term.UnaryOpTerm(Term.UnaryOp.from(s), t));
                         term.ifPresent(t -> {
-                            tokens.remove();
+                            tokens.remove(); //this is what happens when you try to mix functional and procedural programming
                             tokens.remove();
                         });
                         yield term;
