@@ -1,4 +1,4 @@
-package io.github.luccaflower.jack;
+package io.github.luccaflower.jack.tokenizer;
 
 import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
@@ -107,6 +107,11 @@ class TokenizerTest {
     @Test
     void aStringLiteralMayBeEmpty() throws SyntaxError {
         assertThat(tokenizer.parse("\"\"")).first().isEqualTo(new Token.StringLiteral(""));
+    }
+
+    @Test
+    void identifierCanStartWithAKeywordName() {
+        assertThat(tokenizer.parse("varName")).first().isEqualTo(new Token.Identifier("varName"));
     }
 
 }

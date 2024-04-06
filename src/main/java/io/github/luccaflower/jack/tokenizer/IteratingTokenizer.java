@@ -2,7 +2,6 @@ package io.github.luccaflower.jack.tokenizer;
 
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -30,7 +29,7 @@ public class IteratingTokenizer {
 
     public IteratingTokenizer(String input) {
         this.input = input;
-        cursor += skipWhitespacesAndCommentsButDontMutate(input);
+        cursor += skipWhitespacesAndComments(input);
     }
 
     public boolean hasMoreTokens() {
@@ -45,7 +44,7 @@ public class IteratingTokenizer {
         var parsed = getNext(rest)
             .orElseThrow(() -> new SyntaxError("Unexpected token: ".concat(rest.split("\\s")[0])));
         cursor += parsed.length();
-        cursor += skipWhitespacesAndCommentsButDontMutate(input.substring(cursor));
+        cursor += skipWhitespacesAndComments(input.substring(cursor));
         return parsed.token();
     }
 
@@ -73,7 +72,7 @@ public class IteratingTokenizer {
             .or(() -> identifierTokenizer.parse(rest));
     }
 
-    private int skipWhitespacesAndCommentsButDontMutate(String rest) {
+    private int skipWhitespacesAndComments(String rest) {
         var advancement = 0;
         var continueSkipping = true;
         while (continueSkipping) {
@@ -108,6 +107,10 @@ public class IteratingTokenizer {
             var matcher = KEYWORD.matcher(input);
             if (matcher.lookingAt()) {
                 var keyword = Token.KeywordType.from(matcher.group());
+                String rest = input.substring(matcher.end());
+                if (!rest.isBlank() && !rest.startsWith(" ")) {
+                    return Optional.empty();
+                }
                 return Optional.of(new ParseResult(new Token.Keyword(keyword), matcher.end()));
             }
             else {

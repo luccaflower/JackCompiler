@@ -42,7 +42,7 @@
             <plugin>
                 <groupId>io.spring.javaformat</groupId>
                 <artifactId>spring-javaformat-maven-plugin</artifactId>
-                <version>0.0.41</version>
+                <version>0.0.42-SNAPSHOT</version>
                 <executions>
                     <execution>
                         <phase>validate</phase>
@@ -95,10 +95,15 @@
             <artifactId>junit-jupiter-params</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.spring.javaformat</groupId>
-            <artifactId>spring-javaformat-maven-plugin</artifactId>
-            <version>0.0.41</version>
-        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>spring-snapshots</id>
+            <url>https://repo.spring.io/snapshot</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>
