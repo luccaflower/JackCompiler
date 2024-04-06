@@ -9,11 +9,17 @@ import java.util.*;
 class SubroutinesDecsParser {
 
     private static final TypeParser.ReturnTypeParser returnTypeParser = new TypeParser.ReturnTypeParser();
+
     private static final StartBlockParser startBlockParser = new StartBlockParser();
+
     private static final NameParser nameParser = new NameParser();
+
     private static final ParameterListParser parameterListParser = new ParameterListParser();
+
     private static final LocalVarDecsParser localVarDecsParser = new LocalVarDecsParser();
+
     private static final StatementsParser statementsParser = new StatementsParser();
+
     private static final EndBlockParser endBlockParser = new EndBlockParser();
 
     public SubroutineDecs parse(IteratingTokenizer tokenizer) {
@@ -27,16 +33,14 @@ class SubroutinesDecsParser {
 
     static class SubroutineParser {
 
-
         public Optional<SubroutineDec> parse(IteratingTokenizer tokenizer) {
-            var subroutineKindToken = tokenizer.peek().orElseThrow(() -> new SyntaxError("Unexpected end of input"));
+            var subroutineKindToken = tokenizer.peek();
             return switch (subroutineKindToken) {
                 case Token.Keyword k when k.type() == Token.KeywordType.FUNCTION -> {
                     tokenizer.advance();
                     var type = returnTypeParser.parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Function must have a return type"));
-                    var name = nameParser.parse(tokenizer)
-                        .orElseThrow(() -> new SyntaxError("Identifier expected"));
+                    var name = nameParser.parse(tokenizer).orElseThrow(() -> new SyntaxError("Identifier expected"));
                     var arguments = parameterListParser.parse(tokenizer);
                     startBlockParser.parse(tokenizer);
                     var locals = localVarDecsParser.parse(tokenizer);

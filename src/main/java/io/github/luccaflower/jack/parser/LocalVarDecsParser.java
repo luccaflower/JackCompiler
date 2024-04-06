@@ -24,7 +24,7 @@ class LocalVarDecsParser {
     static class LocalVarParser {
 
         Optional<LocalVar> parse(IteratingTokenizer tokenizer) {
-            return switch (tokenizer.peek().orElseThrow(() -> new SyntaxError("Unexpected end of input"))) {
+            return switch (tokenizer.peek()) {
                 case Token.Keyword k when k.type() == Token.KeywordType.VAR -> {
                     tokenizer.advance();
                     var type = new TypeParser.VarTypeParser().parse(tokenizer)

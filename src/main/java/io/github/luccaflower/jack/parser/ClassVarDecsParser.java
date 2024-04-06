@@ -32,7 +32,7 @@ class ClassVarDecsParser {
     static class FieldDecParser {
 
         Optional<FieldDec> parse(IteratingTokenizer tokenizer) {
-            var newScopeToken = tokenizer.peek().orElseThrow(() -> new SyntaxError("unexpected end of file"));
+            var newScopeToken = tokenizer.peek();
             ClassVarScope scope;
             switch (newScopeToken) {
                 case Token.Keyword k when k.type() == Token.KeywordType.STATIC:

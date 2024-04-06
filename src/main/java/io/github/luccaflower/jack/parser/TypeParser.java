@@ -9,7 +9,7 @@ import java.util.Optional;
 class TypeParser {
 
     public Optional<Type> parse(IteratingTokenizer tokenizer) {
-        return switch (tokenizer.peek().orElse(null)) {
+        return switch (tokenizer.peek()) {
             case Token.Keyword k when k.type() == Token.KeywordType.VOID -> {
                 tokenizer.advance();
                 yield Optional.of(new Type.VoidType());

@@ -33,31 +33,34 @@ public class IteratingTokenizer {
     }
 
     public boolean hasMoreTokens() {
-        return !input.substring(cursor).isBlank();
+        return !rest().isBlank();
     }
 
     public Token advance() throws SyntaxError {
-        var rest = input.substring(cursor);
+        var rest = rest();
         if (rest.isBlank()) {
             throw new IndexOutOfBoundsException("input end reached");
         }
-        var parsed = getNext(rest)
-            .orElseThrow(() -> new SyntaxError("Unexpected token: ".concat(rest.split("\\s")[0])));
+        var parsed = getNext(rest).orElseThrow(() -> new SyntaxError("Unexpected EOF"));
         cursor += parsed.length();
-        cursor += skipWhitespacesAndComments(input.substring(cursor));
+        cursor += skipWhitespacesAndComments(rest());
         return parsed.token();
     }
 
-    public Token remove() throws SyntaxError {
-        return advance();
+    private String rest() {
+        return input.substring(cursor);
     }
 
-    public Optional<Token> peek() {
-        return getNext(input.substring(cursor)).map(ParseResult::token);
+    public Optional<Token> maybePeek() {
+        return getNext(rest()).map(ParseResult::token);
+    }
+
+    public Token peek() {
+        return getNext(rest()).orElseThrow(() -> new SyntaxError("Unexpected EOF")).token();
     }
 
     public IteratingTokenizer lookAhead(int count) throws SyntaxError {
-        IteratingTokenizer iteratingTokenizer = new IteratingTokenizer(input.substring(cursor));
+        IteratingTokenizer iteratingTokenizer = new IteratingTokenizer(rest());
         for (int i = 0; i < count; i++) {
             iteratingTokenizer.advance();
         }

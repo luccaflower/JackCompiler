@@ -107,7 +107,7 @@ class ParserTest {
     void subroutineMayReturnAValue() {
         var input = """
                 class Name {
-                    function void name() {
+                    function int name() {
                         return 0;
                     }
                 }""";
@@ -115,6 +115,21 @@ class ParserTest {
             .isEqualTo(new StatementsParser.ReturnStatement(Optional.of(new ExpressionParser.Expression(
                     new ExpressionParser.Term.Constant(new Token.IntegerLiteral(0)), Optional.empty()))));
 
+    }
+
+    @Test
+    void subroutinesMayHaveLetStatements() {
+        var input = """
+                class Name {
+                    function void name() {
+                        var int var1;
+                        let var1 = 0;
+                        return;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+            .isEqualTo(new StatementsParser.LetStatement("var1", new ExpressionParser.Expression(
+                    new ExpressionParser.Term.Constant(new Token.IntegerLiteral(0)), Optional.empty())));
     }
 
 }

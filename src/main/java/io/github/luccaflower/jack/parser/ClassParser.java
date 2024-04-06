@@ -9,8 +9,11 @@ import java.util.*;
 class ClassParser {
 
     private final StartBlockParser startBlockParser = new StartBlockParser();
+
     private final ClassVarDecsParser classVarDecsParser = new ClassVarDecsParser();
+
     private final SubroutinesDecsParser subroutinesDecsParser = new SubroutinesDecsParser();
+
     private final EndBlockParser endBlockParser = new EndBlockParser();
 
     Optional<JackClass> parse(IteratingTokenizer tokenizer) {

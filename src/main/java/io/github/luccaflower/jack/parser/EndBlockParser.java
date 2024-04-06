@@ -5,6 +5,7 @@ import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 class EndBlockParser {
+
     void parse(IteratingTokenizer tokenizer) {
 
         switch (tokenizer.advance()) {
@@ -14,4 +15,5 @@ class EndBlockParser {
                 throw new SyntaxError("Expected }");
         }
     }
+
 }
