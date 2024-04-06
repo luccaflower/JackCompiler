@@ -170,12 +170,26 @@ class ParserTest {
                         return;
                     }
                 }""";
-        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
-                .first()
-                .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.IfStatement.class))
-                .extracting(StatementsParser.IfStatement::elseBlock)
-                .isEqualTo(Optional.of(new StatementsParser.ElseBlock(List.of(new StatementsParser.ReturnStatement(Optional.empty())))));
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+            .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.IfStatement.class))
+            .extracting(StatementsParser.IfStatement::elseBlock)
+            .isEqualTo(Optional
+                .of(new StatementsParser.ElseBlock(List.of(new StatementsParser.ReturnStatement(Optional.empty())))));
 
+    }
+
+    @Test
+    void whileStatements() {
+        var input = """
+                class Name {
+                    function void name() {
+                        var int x;
+                        while (true) { }
+                        return;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+            .isEqualTo(new StatementsParser.WhileStatement(constantExpression(true), List.of()));
     }
 
     private static ExpressionParser.Expression constantExpression(int i) {
