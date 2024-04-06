@@ -138,8 +138,10 @@ class ExpressionParser {
         record KeywordLiteral(Token.KeywordType type) implements Term {
             public KeywordLiteral {
                 switch (type) {
-                    case TRUE, FALSE, NULL, THIS: break;
-                    default: throw new IllegalArgumentException("Only true and false are valid keyword constants");
+                    case TRUE, FALSE, NULL, THIS:
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Only true and false are valid keyword constants");
                 }
             }
         }

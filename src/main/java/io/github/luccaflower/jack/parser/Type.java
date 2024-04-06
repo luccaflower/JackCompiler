@@ -5,7 +5,15 @@ import io.github.luccaflower.jack.tokenizer.Token;
 
 sealed interface Type {
 
-    enum PrimitiveType implements Type {
+    sealed interface VarType extends Type {
+
+    }
+
+    sealed interface ReturnType extends Type {
+
+    }
+
+    enum PrimitiveType implements VarType, ReturnType {
 
         INT, CHAR, BOOLEAN;
 
@@ -20,7 +28,10 @@ sealed interface Type {
 
     }
 
-    record ClassType(String name) implements Type {
+    record ClassType(String name) implements VarType, ReturnType {
+    }
+
+    record VoidType() implements ReturnType {
     }
 
 }

@@ -108,10 +108,13 @@ public class IteratingTokenizer {
             if (matcher.lookingAt()) {
                 var keyword = Token.KeywordType.from(matcher.group());
                 String rest = input.substring(matcher.end());
-                if (!rest.isBlank() && !rest.startsWith(" ")) {
+                // ensure that the keyword is not an identifier
+                if (Pattern.compile("\\w+").matcher(rest).lookingAt()) {
                     return Optional.empty();
                 }
-                return Optional.of(new ParseResult(new Token.Keyword(keyword), matcher.end()));
+                else {
+                    return Optional.of(new ParseResult(new Token.Keyword(keyword), matcher.end()));
+                }
             }
             else {
                 return Optional.empty();
@@ -177,7 +180,7 @@ public class IteratingTokenizer {
 
     public static class IdentifierTokenizer {
 
-        private static final Pattern IDENTIFIER = Pattern.compile("[a-zA-Z_][a-zA-Z0-9_]*");
+        private static final Pattern IDENTIFIER = Pattern.compile("[a-zA-Z_]\\w*");
 
         public Optional<ParseResult> parse(String input) {
             var matcher = IDENTIFIER.matcher(input);

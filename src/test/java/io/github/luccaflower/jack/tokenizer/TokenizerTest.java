@@ -114,4 +114,9 @@ class TokenizerTest {
         assertThat(tokenizer.parse("varName")).first().isEqualTo(new Token.Identifier("varName"));
     }
 
+    @Test
+    void keywordCanEndWithSemicolon() {
+        assertThat(tokenizer.parse("return;")).first().isEqualTo(new Token.Keyword(Token.KeywordType.RETURN));
+    }
+
 }
