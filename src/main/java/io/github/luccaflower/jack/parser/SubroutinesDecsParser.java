@@ -45,6 +45,9 @@ class SubroutinesDecsParser {
                     startBlockParser.parse(tokenizer);
                     var locals = localVarDecsParser.parse(tokenizer);
                     var statements = statementsParser.parse(tokenizer);
+                    if (statements.isEmpty() || !(statements.getLast() instanceof StatementsParser.ReturnStatement)) {
+                        throw new SyntaxError("Missing return");
+                    }
                     endBlockParser.parse(tokenizer);
                     yield Optional.of(new SubroutineDec(name,
                             Function.builder(type).arguments(arguments).locals(locals).statements(statements).build()));

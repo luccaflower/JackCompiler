@@ -2,9 +2,11 @@ package io.github.luccaflower.jack.parser;
 
 import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.assertj.core.api.InstanceOfAssertFactory;
 import org.junit.jupiter.api.Test;
 
-import java.beans.Expression;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -112,8 +114,7 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).last()
-            .isEqualTo(new StatementsParser.ReturnStatement(Optional.of(new ExpressionParser.Expression(
-                    new ExpressionParser.Term.Constant(new Token.IntegerLiteral(0)), Optional.empty()))));
+            .isEqualTo(new StatementsParser.ReturnStatement(Optional.of(constantExpression(0))));
 
     }
 
@@ -128,8 +129,69 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isEqualTo(new StatementsParser.LetStatement("var1", new ExpressionParser.Expression(
-                    new ExpressionParser.Term.Constant(new Token.IntegerLiteral(0)), Optional.empty())));
+            .isEqualTo(new StatementsParser.LetStatement("var1", Optional.empty(), constantExpression(0)));
+    }
+
+    @Test
+    void variableNamesMayHaveAnIndex() {
+        var input = """
+                class Name {
+                    function void name() {
+                        var Array var1;
+                        let var1[0] = 0;
+                        return;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+            .isEqualTo(new StatementsParser.LetStatement("var1", Optional.of(constantExpression(0)),
+                    constantExpression(0)));
+    }
+
+    @Test
+    void ifStatements() {
+        var input = """
+                class Name {
+                    function void name() {
+                        if (true) { return; }
+                        return;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+            .isEqualTo(new StatementsParser.IfStatement(constantExpression(true),
+                    List.of(new StatementsParser.ReturnStatement(Optional.empty())), Optional.empty()));
+    }
+
+    @Test
+    void elseBlocks() {
+        var input = """
+                class Name {
+                    function void name() {
+                        if (true) { return; } else { return; }
+                        return;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
+                .first()
+                .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.IfStatement.class))
+                .extracting(StatementsParser.IfStatement::elseBlock)
+                .isEqualTo(Optional.of(new StatementsParser.ElseBlock(List.of(new StatementsParser.ReturnStatement(Optional.empty())))));
+
+    }
+
+    private static ExpressionParser.Expression constantExpression(int i) {
+        return new ExpressionParser.Expression(new ExpressionParser.Term.Constant(new Token.IntegerLiteral(i)),
+                Optional.empty());
+    }
+
+    private static ExpressionParser.Expression constantExpression(String s) {
+        return new ExpressionParser.Expression(new ExpressionParser.Term.Constant(new Token.StringLiteral(s)),
+                Optional.empty());
+    }
+
+    private static ExpressionParser.Expression constantExpression(boolean b) {
+        return new ExpressionParser.Expression(
+                new ExpressionParser.Term.KeywordLiteral(Token.KeywordType.from(String.valueOf(b))), Optional.empty());
+
     }
 
 }
