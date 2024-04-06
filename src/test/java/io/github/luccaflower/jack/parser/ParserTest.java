@@ -6,15 +6,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.github.luccaflower.jack.TokenizerUtils.tokenize;
-import static io.github.luccaflower.jack.parser.Parser.PrimitiveType.INT;
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.github.luccaflower.jack.parser.Type.PrimitiveType.INT;
+import static org.assertj.core.api.Assertions.*;
 
 class ParserTest {
+
     private final Parser parser = new Parser();
 
     @Test
     void theCompilationUnitIsAClass() {
-        assertThat(parser.parse(tokenize("class Name {}"))).isEqualTo(new Parser.Class("Name", new HashMap<>(), new HashMap<>()));
+        assertThat(parser.parse(tokenize("class Name {}")))
+            .isEqualTo(new JackClass("Name", new HashMap<>(), new HashMap<>()));
     }
 
     @Test
@@ -23,16 +25,16 @@ class ParserTest {
                 class Name {
                     static int varName;
                 }""";
-        assertThat(parser.parse(tokenize(input))).isEqualTo(new Parser.Class("Name", Map.of("varName", INT ), new HashMap<>()));
+        assertThat(parser.parse(tokenize(input)).statics()).isEqualTo(Map.of("varName", INT));
     }
 
     @Test
     void classesCanHaveSeveralClassVars() {
         var input = """
-                    class Name {
-                        static int var1;
-                        static int var2;
-                    }""";
+                class Name {
+                    static int var1;
+                    static int var2;
+                }""";
         assertThat(parser.parse(tokenize(input)).statics()).isEqualTo(Map.of("var1", INT, "var2", INT));
     }
 
@@ -51,6 +53,18 @@ class ParserTest {
                 class Name {
                     field Other var1;
                 }""";
-        assertThat(parser.parse(tokenize(input)).fields()).isEqualTo(Map.of("var1", new Parser.ClassType("Other")));
+        assertThat(parser.parse(tokenize(input)).fields()).isEqualTo(Map.of("var1", new Type.ClassType("Other")));
     }
+
+    @Test
+    void subroutinesMustEndWithAReturn() {
+        var input = """
+                class Name {
+                    function void name() {
+                        return;
+                    }
+                }""";
+        assertThatCode(() -> parser.parse(tokenize(input))).doesNotThrowAnyException();
+    }
+
 }
