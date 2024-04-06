@@ -9,6 +9,7 @@ public record JackClass(String name, Map<String, Type.VarType> statics, Map<Stri
     public static Builder builder() {
         return new Builder();
     }
+
     public static class Builder {
 
         private String name = "";

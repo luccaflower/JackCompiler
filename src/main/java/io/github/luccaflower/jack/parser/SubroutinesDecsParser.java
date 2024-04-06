@@ -8,6 +8,14 @@ import java.util.*;
 
 class SubroutinesDecsParser {
 
+    private static final TypeParser.ReturnTypeParser returnTypeParser = new TypeParser.ReturnTypeParser();
+    private static final StartBlockParser startBlockParser = new StartBlockParser();
+    private static final NameParser nameParser = new NameParser();
+    private static final ParameterListParser parameterListParser = new ParameterListParser();
+    private static final LocalVarDecsParser localVarDecsParser = new LocalVarDecsParser();
+    private static final StatementsParser statementsParser = new StatementsParser();
+    private static final EndBlockParser endBlockParser = new EndBlockParser();
+
     public SubroutineDecs parse(IteratingTokenizer tokenizer) {
         var subroutineParser = new SubroutineParser();
         Map<String, Subroutine> subroutines = new HashMap<>();
@@ -19,43 +27,23 @@ class SubroutinesDecsParser {
 
     static class SubroutineParser {
 
+
         public Optional<SubroutineDec> parse(IteratingTokenizer tokenizer) {
             var subroutineKindToken = tokenizer.peek().orElseThrow(() -> new SyntaxError("Unexpected end of input"));
             return switch (subroutineKindToken) {
                 case Token.Keyword k when k.type() == Token.KeywordType.FUNCTION -> {
                     tokenizer.advance();
-                    var type = new TypeParser.ReturnTypeParser().parse(tokenizer)
+                    var type = returnTypeParser.parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Function must have a return type"));
-                    var name = new NameParser().parse(tokenizer)
+                    var name = nameParser.parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Identifier expected"));
-                    var arguments = new ParameterListParser().parse(tokenizer);
-                    switch (tokenizer.advance()) {
-                        case Token.Symbol s when s.type() == Token.SymbolType.OPEN_BRACE:
-                            break;
-                        default:
-                            throw new SyntaxError("Expected {");
-                    }
-                    var locals = new LocalVarDecsParser().parse(tokenizer);
-                    switch (tokenizer.advance()) {
-                        case Token.Keyword returnKeyword when returnKeyword.type() == Token.KeywordType.RETURN:
-                            break;
-                        default:
-                            throw new SyntaxError("Missing return");
-                    }
-                    switch (tokenizer.advance()) {
-                        case Token.Symbol s when s.type() == Token.SymbolType.SEMICOLON:
-                            break;
-                        default:
-                            throw new SyntaxError("Missing ;");
-                    }
-                    switch (tokenizer.advance()) {
-                        case Token.Symbol s when s.type() == Token.SymbolType.CLOSE_BRACE:
-                            break;
-                        default:
-                            throw new SyntaxError("Missing }");
-                    }
+                    var arguments = parameterListParser.parse(tokenizer);
+                    startBlockParser.parse(tokenizer);
+                    var locals = localVarDecsParser.parse(tokenizer);
+                    var statements = statementsParser.parse(tokenizer);
+                    endBlockParser.parse(tokenizer);
                     yield Optional.of(new SubroutineDec(name,
-                            Function.builder(type).arguments(arguments).locals(locals).build()));
+                            Function.builder(type).arguments(arguments).locals(locals).statements(statements).build()));
                 }
                 default -> Optional.empty();
             };
@@ -75,25 +63,27 @@ class SubroutinesDecsParser {
 
         Map<String, Type.VarType> locals();
 
+        List<StatementsParser.Statement> statements();
+
     }
 
-    record Function(Type type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
-            List<Statement> statements) implements Subroutine {
+    record Function(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
+            List<StatementsParser.Statement> statements) implements Subroutine {
 
-        public static Builder builder(Type type) {
+        public static Builder builder(Type.ReturnType type) {
             return new Builder(type);
         }
         static class Builder {
 
-            private final Type type;
+            private final Type.ReturnType type;
 
             private Map<String, Type.VarType> arguments = new HashMap<>();
 
             private Map<String, Type.VarType> locals = new HashMap<>();
 
-            private List<Statement> statements = new ArrayList<>();
+            private List<StatementsParser.Statement> statements = new ArrayList<>();
 
-            private Builder(Type type) {
+            private Builder(Type.ReturnType type) {
                 this.type = type;
             }
 
@@ -107,7 +97,7 @@ class SubroutinesDecsParser {
                 return this;
             }
 
-            public Builder statements(List<Statement> statements) {
+            public Builder statements(List<StatementsParser.Statement> statements) {
                 this.statements = statements;
                 return this;
             }
@@ -117,17 +107,6 @@ class SubroutinesDecsParser {
             }
 
         }
-    }
-
-    static class StatementParser {
-
-        public Optional<Statement> parse(IteratingTokenizer tokenizer) {
-            return Optional.empty();
-        }
-
-    }
-
-    record Statement() {
     }
 
 }

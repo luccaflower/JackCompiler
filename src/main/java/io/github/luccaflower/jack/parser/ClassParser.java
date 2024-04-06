@@ -8,28 +8,21 @@ import java.util.*;
 
 class ClassParser {
 
+    private final StartBlockParser startBlockParser = new StartBlockParser();
+    private final ClassVarDecsParser classVarDecsParser = new ClassVarDecsParser();
+    private final SubroutinesDecsParser subroutinesDecsParser = new SubroutinesDecsParser();
+    private final EndBlockParser endBlockParser = new EndBlockParser();
+
     Optional<JackClass> parse(IteratingTokenizer tokenizer) {
         var next = tokenizer.advance();
         var className = switch (next) {
             case Token.Identifier i -> i.name();
             default -> throw new SyntaxError("Expected identifer, got %s".formatted(next));
         };
-        var beginClass = tokenizer.advance();
-        switch (beginClass) {
-            case Token.Symbol s when s.type() == Token.SymbolType.OPEN_BRACE:
-                break;
-            default:
-                throw new SyntaxError("Expected {, got %s".formatted(beginClass));
-        }
-        var classVarDecs = new ClassVarDecsParser().parse(tokenizer);
-        var subroutineDecs = new SubroutinesDecsParser().parse(tokenizer);
-        var endClass = tokenizer.advance();
-        switch (endClass) {
-            case Token.Symbol s when s.type() == Token.SymbolType.CLOSE_BRACE:
-                break;
-            default:
-                throw new SyntaxError("Expected }, got %s".formatted(endClass));
-        }
+        startBlockParser.parse(tokenizer);
+        var classVarDecs = classVarDecsParser.parse(tokenizer);
+        var subroutineDecs = subroutinesDecsParser.parse(tokenizer);
+        endBlockParser.parse(tokenizer);
         return Optional.of(JackClass.builder()
             .name(className)
             .statics(classVarDecs.statics())

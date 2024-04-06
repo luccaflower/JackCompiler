@@ -1,9 +1,12 @@
 package io.github.luccaflower.jack.parser;
 
 import io.github.luccaflower.jack.tokenizer.SyntaxError;
+import io.github.luccaflower.jack.tokenizer.Token;
 import org.junit.jupiter.api.Test;
 
+import java.beans.Expression;
 import java.util.Map;
+import java.util.Optional;
 
 import static io.github.luccaflower.jack.TokenizerUtils.tokenize;
 import static io.github.luccaflower.jack.parser.Type.PrimitiveType.INT;
@@ -98,6 +101,20 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").locals()).containsKey("local1");
+    }
+
+    @Test
+    void subroutineMayReturnAValue() {
+        var input = """
+                class Name {
+                    function void name() {
+                        return 0;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).last()
+            .isEqualTo(new StatementsParser.ReturnStatement(Optional.of(new ExpressionParser.Expression(
+                    new ExpressionParser.Term.Constant(new Token.IntegerLiteral(0)), Optional.empty()))));
+
     }
 
 }

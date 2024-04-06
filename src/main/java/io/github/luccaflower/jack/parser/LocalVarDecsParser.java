@@ -10,6 +10,8 @@ import java.util.Optional;
 
 class LocalVarDecsParser {
 
+    private static final TerminateStatementParser terminateStatementParser = new TerminateStatementParser();
+
     Map<String, Type.VarType> parse(IteratingTokenizer tokenizer) {
         var locals = new HashMap<String, Type.VarType>();
         var localVarParser = new LocalVarParser();
@@ -29,12 +31,7 @@ class LocalVarDecsParser {
                         .orElseThrow(() -> new SyntaxError("Invalid type"));
                     var name = new NameParser().parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Invalid identifer"));
-                    switch (tokenizer.advance()) {
-                        case Token.Symbol s when s.type() == Token.SymbolType.SEMICOLON:
-                            break;
-                        default:
-                            throw new SyntaxError("Missing semicolon");
-                    }
+                    terminateStatementParser.parse(tokenizer);
                     yield Optional.of(new LocalVar(name, type));
                 }
                 default -> Optional.empty();
