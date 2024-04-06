@@ -45,7 +45,8 @@ class ClassVarDecsParser {
                     return Optional.empty();
             }
             tokenizer.advance();
-            var type = new TypeParser.VarTypeParser().parse(tokenizer);
+            var type = new TypeParser.VarTypeParser().parse(tokenizer)
+                .orElseThrow(() -> new SyntaxError("Field must have a type"));
             Set<String> names = new HashSet<>();
             var nameParser = new NameParser();
             loop: while (nameParser.parse(tokenizer).orElse(null) instanceof String name) {

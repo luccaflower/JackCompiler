@@ -30,7 +30,12 @@ class ClassParser {
             default:
                 throw new SyntaxError("Expected }, got %s".formatted(endClass));
         }
-        return Optional.of(new JackClass(className, classVarDecs.statics(), classVarDecs.fields()));
+        return Optional.of(JackClass.builder()
+            .name(className)
+            .statics(classVarDecs.statics())
+            .fields(classVarDecs.fields())
+            .subroutines(subroutineDecs.subroutines())
+            .build());
     }
 
 }

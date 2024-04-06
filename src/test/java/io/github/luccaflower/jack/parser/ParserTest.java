@@ -1,8 +1,8 @@
 package io.github.luccaflower.jack.parser;
 
+import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.github.luccaflower.jack.TokenizerUtils.tokenize;
@@ -15,8 +15,7 @@ class ParserTest {
 
     @Test
     void theCompilationUnitIsAClass() {
-        assertThat(parser.parse(tokenize("class Name {}")))
-            .isEqualTo(new JackClass("Name", new HashMap<>(), new HashMap<>()));
+        assertThat(parser.parse(tokenize("class Name {}"))).isEqualTo(JackClass.builder().name("Name").build());
     }
 
     @Test
@@ -61,10 +60,44 @@ class ParserTest {
         var input = """
                 class Name {
                     function void name() {
+                    }
+                }""";
+        assertThatThrownBy(() -> parser.parse(tokenize(input))).isInstanceOf(SyntaxError.class);
+    }
+
+    @Test
+    void subroutinesAreIdentifiedByTheirName() {
+        var input = """
+                class Name {
+                    function void name() {
                         return;
                     }
                 }""";
-        assertThatCode(() -> parser.parse(tokenize(input))).doesNotThrowAnyException();
+        assertThat(parser.parse(tokenize(input)).subroutines()).containsKey("name");
+    }
+
+    @Test
+    void subroutinesMayHaveParameters() {
+        var input = """
+                class Name {
+                    function void name(int arg1) {
+                        return;
+                    }
+                }""";
+
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").arguments()).containsKey("arg1");
+    }
+
+    @Test
+    void localVarsAreDeclaredInTheBeginningOfTheBody() {
+        var input = """
+                class Name {
+                    function void name() {
+                        var int local1;
+                        return;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").locals()).containsKey("local1");
     }
 
 }

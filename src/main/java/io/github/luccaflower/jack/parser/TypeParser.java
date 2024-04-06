@@ -4,33 +4,44 @@ import io.github.luccaflower.jack.tokenizer.IteratingTokenizer;
 import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
+import java.util.Optional;
+
 class TypeParser {
 
-    public Type parse(IteratingTokenizer tokenizer) {
-        return switch (tokenizer.advance()) {
-            case Token.Keyword k when k.type() == Token.KeywordType.VOID -> new Type.VoidType();
-            case Token.Keyword k -> Type.PrimitiveType.from(k);
-            case Token.Identifier i -> new Type.ClassType(i.name());
-            default -> throw new SyntaxError("Unexpected type: %s".formatted(tokenizer.advance()));
+    public Optional<Type> parse(IteratingTokenizer tokenizer) {
+        return switch (tokenizer.peek().orElse(null)) {
+            case Token.Keyword k when k.type() == Token.KeywordType.VOID -> {
+                tokenizer.advance();
+                yield Optional.of(new Type.VoidType());
+            }
+            case Token.Keyword k -> {
+                tokenizer.advance();
+                yield Optional.of(Type.PrimitiveType.from(k));
+            }
+            case Token.Identifier i -> {
+                tokenizer.advance();
+                yield Optional.of(new Type.ClassType(i.name()));
+            }
+            default -> Optional.empty();
         };
     }
 
     static class VarTypeParser {
 
-        public Type.VarType parse(IteratingTokenizer tokenizer) {
+        public Optional<Type.VarType> parse(IteratingTokenizer tokenizer) {
             var type = new TypeParser().parse(tokenizer);
-            if (type instanceof Type.VoidType) {
+            if (type.orElse(null) instanceof Type.VoidType) {
                 throw new SyntaxError("Void type not allowed here");
             }
-            return (Type.VarType) type;
+            return type.map(t -> (Type.VarType) t);
         }
 
     }
 
     static class ReturnTypeParser {
 
-        public Type.ReturnType parse(IteratingTokenizer tokenizer) {
-            return (Type.ReturnType) new TypeParser().parse(tokenizer);
+        public Optional<Type.ReturnType> parse(IteratingTokenizer tokenizer) {
+            return new TypeParser().parse(tokenizer).map(t -> (Type.ReturnType) t);
         }
 
     }
