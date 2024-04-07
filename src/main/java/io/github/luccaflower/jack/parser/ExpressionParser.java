@@ -27,7 +27,7 @@ class ExpressionParser {
                 return Optional.empty();
             }
 
-            if(!(tokens.peek() instanceof Token.Symbol s)) {
+            if (!(tokens.peek() instanceof Token.Symbol s)) {
                 return Optional.empty();
             }
 
@@ -87,9 +87,12 @@ class ExpressionParser {
                 return Optional.empty();
             }
             switch (tokens.peek()) {
-                case Token.IntegerLiteral ignored: break;
-                case Token.StringLiteral ignored: break;
-                default: return Optional.empty();
+                case Token.IntegerLiteral ignored:
+                    break;
+                case Token.StringLiteral ignored:
+                    break;
+                default:
+                    return Optional.empty();
             }
             return Optional.of(new Term.Constant(tokens.advance()));
         }
@@ -133,8 +136,10 @@ class ExpressionParser {
                 return Optional.empty();
             }
             switch (tokens.peek()) {
-                case Token.Symbol s when s.type() == TILDE || s.type() == Token.SymbolType.MINUS: break;
-                default: return Optional.empty();
+                case Token.Symbol s when s.type() == TILDE || s.type() == Token.SymbolType.MINUS:
+                    break;
+                default:
+                    return Optional.empty();
             }
             var nextTerm = new TermParser().parse(tokens.lookAhead(1));
             if (nextTerm.isPresent()) {
@@ -191,7 +196,7 @@ class ExpressionParser {
             public static UnaryOp from(Token symbol) {
                 return switch (symbol) {
                     case Token.Symbol s when s.type() == TILDE -> NOT;
-                    case Token.Symbol s when s.type() == MINUS  -> NEGATIVE;
+                    case Token.Symbol s when s.type() == MINUS -> NEGATIVE;
                     default -> throw new IllegalArgumentException("Unary operator must be either ~ or -");
                 };
             }
