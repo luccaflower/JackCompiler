@@ -6,6 +6,9 @@ import io.github.luccaflower.jack.tokenizer.Token;
 
 import java.util.Optional;
 
+import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.MINUS;
+import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.TILDE;
+
 class ExpressionParser {
 
     public Optional<Expression> parse(IteratingTokenizer tokens) {
@@ -24,18 +27,17 @@ class ExpressionParser {
                 return Optional.empty();
             }
 
-            if (tokens.peek() instanceof Token.Symbol s) {
-                return switch (s.type()) {
-                    case PLUS, MINUS, ASTERISK, SLASH, AMPERSAND, PIPE, LESS_THAN, GREATER_THAN, EQUALS -> {
-                        tokens.advance();
-                        yield Optional.of(Operator.from(s));
-                    }
-                    default -> Optional.empty();
-                };
-            }
-            else {
+            if(!(tokens.peek() instanceof Token.Symbol s)) {
                 return Optional.empty();
             }
+
+            return switch (s.type()) {
+                case PLUS, MINUS, ASTERISK, SLASH, AMPERSAND, PIPE, LESS_THAN, GREATER_THAN, EQUALS -> {
+                    tokens.advance();
+                    yield Optional.of(Operator.from(s));
+                }
+                default -> Optional.empty();
+            };
         }
 
     }
@@ -84,12 +86,12 @@ class ExpressionParser {
             if (!tokens.hasMoreTokens()) {
                 return Optional.empty();
             }
-            return switch (tokens.peek()) {
-                case Token token when (token instanceof Token.IntegerLiteral || token instanceof Token.StringLiteral) ->
-                    Optional.of(new Term.Constant(tokens.advance()));
-                default -> Optional.empty();
-
-            };
+            switch (tokens.peek()) {
+                case Token.IntegerLiteral ignored: break;
+                case Token.StringLiteral ignored: break;
+                default: return Optional.empty();
+            }
+            return Optional.of(new Term.Constant(tokens.advance()));
         }
 
     }
@@ -100,13 +102,11 @@ class ExpressionParser {
             if (!tokens.hasMoreTokens()) {
                 return Optional.empty();
             }
-            return switch (tokens.peek()) {
-                case Token.Identifier i -> {
-                    tokens.advance();
-                    yield Optional.of(new Term.VarName(i.name()));
-                }
-                default -> Optional.empty();
-            };
+            if (!(tokens.peek() instanceof Token.Identifier i)) {
+                return Optional.empty();
+            }
+            tokens.advance();
+            return Optional.of(new Term.VarName(i.name()));
         }
 
     }
@@ -117,13 +117,11 @@ class ExpressionParser {
             if (!tokens.hasMoreTokens()) {
                 return Optional.empty();
             }
-            return switch (tokens.peek()) {
-                case Token.Keyword k -> {
-                    tokens.advance();
-                    yield Optional.of(new Term.KeywordLiteral(k.type()));
-                }
-                default -> Optional.empty();
-            };
+            if (!(tokens.peek() instanceof Token.Keyword k)) {
+                return Optional.empty();
+            }
+            tokens.advance();
+            return Optional.of(new Term.KeywordLiteral(k.type()));
         }
 
     }
@@ -134,20 +132,19 @@ class ExpressionParser {
             if (!tokens.hasMoreTokens()) {
                 return Optional.empty();
             }
-            return switch (tokens.peek()) {
-                case Token.Symbol s when s.type() == Token.SymbolType.TILDE || s.type() == Token.SymbolType.MINUS -> {
-                    var nextTerm = new TermParser().parse(tokens.lookAhead(1));
-                    if (nextTerm.isPresent()) {
-                        tokens.advance();
-                        tokens.advance();
-                        yield Optional.of(new Term.UnaryOpTerm(Term.UnaryOp.from(s), nextTerm.get()));
-                    }
-                    else {
-                        yield Optional.empty();
-                    }
-                }
-                default -> Optional.empty();
-            };
+            switch (tokens.peek()) {
+                case Token.Symbol s when s.type() == TILDE || s.type() == Token.SymbolType.MINUS: break;
+                default: return Optional.empty();
+            }
+            var nextTerm = new TermParser().parse(tokens.lookAhead(1));
+            if (nextTerm.isPresent()) {
+                var op = tokens.advance();
+                tokens.advance();
+                return Optional.of(new Term.UnaryOpTerm(Term.UnaryOp.from(op), nextTerm.get()));
+            }
+            else {
+                return Optional.empty();
+            }
         }
 
     }
@@ -191,10 +188,10 @@ class ExpressionParser {
 
             NEGATIVE, NOT;
 
-            public static UnaryOp from(Token.Symbol symbol) {
-                return switch (symbol.type()) {
-                    case TILDE -> NOT;
-                    case MINUS -> NEGATIVE;
+            public static UnaryOp from(Token symbol) {
+                return switch (symbol) {
+                    case Token.Symbol s when s.type() == TILDE -> NOT;
+                    case Token.Symbol s when s.type() == MINUS  -> NEGATIVE;
                     default -> throw new IllegalArgumentException("Unary operator must be either ~ or -");
                 };
             }

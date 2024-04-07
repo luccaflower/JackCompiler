@@ -24,7 +24,7 @@ class StatementsParser {
 
     private static final ConditionAndBlockParser conditionAndBlockParser = new ConditionAndBlockParser();
 
-    private final StatementParser statementParser = new StatementParser();
+    private static final StatementParser statementParser = new StatementParser();
 
     public List<Statement> parse(IteratingTokenizer tokenizer) {
         var statements = new ArrayList<Statement>();
