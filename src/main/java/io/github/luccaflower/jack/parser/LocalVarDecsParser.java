@@ -7,35 +7,32 @@ import io.github.luccaflower.jack.tokenizer.Token;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 class LocalVarDecsParser {
-
-    private static final TerminateStatementParser terminateStatementParser = new TerminateStatementParser();
 
     Map<String, Type.VarType> parse(IteratingTokenizer tokenizer) {
         var locals = new HashMap<String, Type.VarType>();
         var localVarParser = new LocalVarParser();
-        while (localVarParser.parse(tokenizer).orElse(null) instanceof LocalVar v) {
-            locals.put(v.name(), v.type());
+        while (localVarParser.parse(tokenizer).orElse(null) instanceof Map<String, LocalVar> m) {
+            m.forEach((n, v) -> locals.put(n, v.type()));
         }
         return locals;
     }
 
     static class LocalVarParser {
 
-        Optional<LocalVar> parse(IteratingTokenizer tokenizer) {
-            return switch (tokenizer.peek()) {
-                case Token.Keyword k when k.type() == Token.KeywordType.VAR -> {
-                    tokenizer.advance();
-                    var type = new TypeParser.VarTypeParser().parse(tokenizer)
-                        .orElseThrow(() -> new SyntaxError("Invalid type"));
-                    var name = new NameParser().parse(tokenizer)
-                        .orElseThrow(() -> new SyntaxError("Invalid identifer"));
-                    terminateStatementParser.parse(tokenizer);
-                    yield Optional.of(new LocalVar(name, type));
-                }
-                default -> Optional.empty();
-            };
+        Optional<Map<String, LocalVar>> parse(IteratingTokenizer tokenizer) {
+            switch (tokenizer.peek()) {
+                case Token.Keyword k when k.type() == Token.KeywordType.VAR: break;
+                default: return Optional.empty();
+            }
+            tokenizer.advance();
+            var typeAndNames = new VarTypeAndNamesParser().parse(tokenizer);
+
+            return Optional.of(typeAndNames.names()
+                    .stream()
+                    .collect(Collectors.toMap(name -> name, name -> new LocalVar(name, typeAndNames.type()))));
         }
 
     }

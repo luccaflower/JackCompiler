@@ -193,6 +193,17 @@ class ParserTest {
             .isInstanceOf(SubroutinesDecsParser.JackMethod.class);
     }
 
+    @Test
+    void multipleLocalDeclarationsInOneStatement() {
+        var input = """
+                class Name {
+                    function void name() {
+                        var int name1, name2;
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").locals()).size().isEqualTo(2);
+    }
+
     private static ExpressionParser.Expression constantExpression(int i) {
         return new ExpressionParser.Expression(new ExpressionParser.Term.Constant(new Token.IntegerLiteral(i)),
                 Optional.empty());
