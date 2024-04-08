@@ -5,6 +5,7 @@ import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 import java.util.*;
+import java.util.function.Function;
 
 class SubroutinesDecsParser {
 
@@ -34,26 +35,36 @@ class SubroutinesDecsParser {
     static class SubroutineParser {
 
         public Optional<SubroutineDec> parse(IteratingTokenizer tokenizer) {
-            var subroutineKindToken = tokenizer.peek();
-            return switch (subroutineKindToken) {
-                case Token.Keyword k when k.type() == Token.KeywordType.FUNCTION -> {
-                    tokenizer.advance();
-                    var type = returnTypeParser.parse(tokenizer)
-                        .orElseThrow(() -> new SyntaxError("Function must have a return type"));
-                    var name = nameParser.parse(tokenizer).orElseThrow(() -> new SyntaxError("Identifier expected"));
-                    var arguments = parameterListParser.parse(tokenizer);
-                    startBlockParser.parse(tokenizer);
-                    var locals = localVarDecsParser.parse(tokenizer);
-                    var statements = statementsParser.parse(tokenizer);
-                    if (statements.isEmpty() || !(statements.getLast() instanceof StatementsParser.ReturnStatement)) {
-                        throw new SyntaxError("Missing return");
-                    }
-                    endBlockParser.parse(tokenizer);
-                    yield Optional.of(new SubroutineDec(name,
-                            Function.builder(type).arguments(arguments).locals(locals).statements(statements).build()));
+            Class<? extends Subroutine> subroutineKind;
+            switch (tokenizer.peek()) {
+                case Token.Keyword k when k.type() == Token.KeywordType.FUNCTION: {
+                    subroutineKind = JackFunction.class;
+                    break;
                 }
-                default -> Optional.empty();
-            };
+                case Token.Keyword k when k.type() == Token.KeywordType.METHOD:
+                    subroutineKind = JackMethod.class;
+                    break;
+                case Token.Keyword k when k.type() == Token.KeywordType.CONSTRUCTOR:
+                    subroutineKind = JackConstructor.class;
+                    break;
+                default:
+                    return Optional.empty();
+            }
+            tokenizer.advance();
+            var type = returnTypeParser.parse(tokenizer)
+                .orElseThrow(() -> new SyntaxError("Function must have a return type"));
+            var name = nameParser.parse(tokenizer).orElseThrow(() -> new SyntaxError("Identifier expected"));
+            var arguments = parameterListParser.parse(tokenizer);
+            startBlockParser.parse(tokenizer);
+            var locals = localVarDecsParser.parse(tokenizer);
+            var statements = statementsParser.parse(tokenizer);
+            endBlockParser.parse(tokenizer);
+            return Optional.of(new SubroutineDec(name,
+                    builder(subroutineKind).type(type)
+                        .arguments(arguments)
+                        .locals(locals)
+                        .statements(statements)
+                        .build()));
         }
 
     }
@@ -74,46 +85,77 @@ class SubroutinesDecsParser {
 
     }
 
-    record Function(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
+    record JackFunction(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
             List<StatementsParser.Statement> statements) implements Subroutine {
 
-        public static Builder builder(Type.ReturnType type) {
-            return new Builder(type);
+    }
+
+    record JackMethod(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
+            List<StatementsParser.Statement> statements) implements Subroutine {
+
+    }
+
+    record JackConstructor(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
+            List<StatementsParser.Statement> statements) implements Subroutine {
+
+    }
+
+    public static <T extends Subroutine> Builder<T> builder(Class<T> kind) {
+        return new Builder<>(kind);
+    }
+
+    static class Builder<T extends Subroutine> {
+
+        private final Class<T> kind;
+
+        private Type.ReturnType type = new Type.VoidType();
+
+        private Map<String, Type.VarType> arguments = new HashMap<>();
+
+        private Map<String, Type.VarType> locals = new HashMap<>();
+
+        private List<StatementsParser.Statement> statements = new ArrayList<>();
+
+        private static final Map<String, Factory> factories = Map.of(JackFunction.class.getSimpleName(),
+                b -> new JackFunction(b.type, b.arguments, b.locals, b.statements), JackMethod.class.getSimpleName(),
+                b -> new JackMethod(b.type, b.arguments, b.locals, b.statements), JackConstructor.class.getSimpleName(),
+                b -> new JackConstructor(b.type, b.arguments, b.locals, b.statements));
+
+        @FunctionalInterface
+        private interface Factory {
+
+            Subroutine apply(Builder<?> builder);
+
         }
-        static class Builder {
 
-            private final Type.ReturnType type;
-
-            private Map<String, Type.VarType> arguments = new HashMap<>();
-
-            private Map<String, Type.VarType> locals = new HashMap<>();
-
-            private List<StatementsParser.Statement> statements = new ArrayList<>();
-
-            private Builder(Type.ReturnType type) {
-                this.type = type;
-            }
-
-            public Builder arguments(Map<String, Type.VarType> arguments) {
-                this.arguments = arguments;
-                return this;
-            }
-
-            public Builder locals(Map<String, Type.VarType> locals) {
-                this.locals = locals;
-                return this;
-            }
-
-            public Builder statements(List<StatementsParser.Statement> statements) {
-                this.statements = statements;
-                return this;
-            }
-
-            public Function build() {
-                return new Function(type, arguments, locals, statements);
-            }
-
+        private Builder(Class<T> kind) {
+            this.kind = kind;
         }
+
+        public Builder<T> type(Type.ReturnType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder<T> arguments(Map<String, Type.VarType> arguments) {
+            this.arguments = arguments;
+            return this;
+        }
+
+        public Builder<T> locals(Map<String, Type.VarType> locals) {
+            this.locals = locals;
+            return this;
+        }
+
+        public Builder<T> statements(List<StatementsParser.Statement> statements) {
+            this.statements = statements;
+            return this;
+        }
+
+        public Subroutine build() {
+            return factories.get(kind.getSimpleName()).apply(this);
+        }
+
     }
 
 }

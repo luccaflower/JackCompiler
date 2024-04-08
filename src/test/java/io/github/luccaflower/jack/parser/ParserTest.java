@@ -61,16 +61,6 @@ class ParserTest {
     }
 
     @Test
-    void subroutinesMustEndWithAReturn() {
-        var input = """
-                class Name {
-                    function void name() {
-                    }
-                }""";
-        assertThatThrownBy(() -> parser.parse(tokenize(input))).isInstanceOf(SyntaxError.class);
-    }
-
-    @Test
     void subroutinesAreIdentifiedByTheirName() {
         var input = """
                 class Name {
@@ -190,6 +180,17 @@ class ParserTest {
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
             .isEqualTo(new StatementsParser.WhileStatement(constantExpression(true), List.of()));
+    }
+
+    @Test
+    void methods() {
+        var input = """
+                class Name {
+                    method void name() {
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name"))
+            .isInstanceOf(SubroutinesDecsParser.JackMethod.class);
     }
 
     private static ExpressionParser.Expression constantExpression(int i) {
