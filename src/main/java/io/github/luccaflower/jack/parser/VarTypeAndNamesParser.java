@@ -8,13 +8,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 class VarTypeAndNamesParser {
+
     VarTypeAndNames parse(IteratingTokenizer tokenizer) {
         var type = new TypeParser.VarTypeParser().parse(tokenizer)
-                .orElseThrow(() -> new SyntaxError("Field must have a type"));
+            .orElseThrow(() -> new SyntaxError("Field must have a type"));
         Set<String> names = new HashSet<>();
         var nameParser = new NameParser();
-        loop:
-        while (nameParser.parse(tokenizer).orElse(null) instanceof String name) {
+        loop: while (nameParser.parse(tokenizer).orElse(null) instanceof String name) {
             names.add(name);
             switch (tokenizer.advance()) {
                 case Token.Symbol s when s.type() == Token.SymbolType.COMMA:
@@ -28,5 +28,7 @@ class VarTypeAndNamesParser {
         return new VarTypeAndNames(type, names);
     }
 
-    record VarTypeAndNames(Type.VarType type, Set<String> names) {}
+    record VarTypeAndNames(Type.VarType type, Set<String> names) {
+    }
+
 }

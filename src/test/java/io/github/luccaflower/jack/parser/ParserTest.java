@@ -1,9 +1,7 @@
 package io.github.luccaflower.jack.parser;
 
-import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.assertj.core.api.InstanceOfAssertFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -204,19 +202,68 @@ class ParserTest {
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").locals()).size().isEqualTo(2);
     }
 
+    @Test
+    void subroutineCalls() {
+        var input = """
+                class Name {
+                    function void name() {
+                        do Other.call();
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
+                .first().isInstanceOf(TermParser.Term.SubroutineCall.class);
+    }
+
+    @Test
+    void indexingInExpressions() {
+        var input = """
+                class Name {
+                    function void name() {
+                        var int i;
+                        var Array arr;
+                        let i = arr[0];
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
+                .last()
+                .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.LetStatement.class))
+                .extracting(s -> s.value().term())
+                .isEqualTo(new TermParser.Term.VarName("arr", Optional.of(constantExpression(0))));
+    }
+
+    @Test
+    void parenthesisExpression() {
+        var input = """
+                class Name {
+                    function void name() {
+                        var int i;
+                        let i = 1 + (2 + 3);
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
+                .last()
+                .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.LetStatement.class))
+                .extracting(StatementsParser.LetStatement::value)
+                .extracting(ExpressionParser.Expression::continuation)
+                .extracting(Optional::get)
+                .extracting(ExpressionParser.OpAndExpression::term)
+                .isInstanceOf(ExpressionParser.Expression.class);
+
+    }
+
     private static ExpressionParser.Expression constantExpression(int i) {
-        return new ExpressionParser.Expression(new ExpressionParser.Term.Constant(new Token.IntegerLiteral(i)),
+        return new ExpressionParser.Expression(new TermParser.Term.Constant(new Token.IntegerLiteral(i)),
                 Optional.empty());
     }
 
     private static ExpressionParser.Expression constantExpression(String s) {
-        return new ExpressionParser.Expression(new ExpressionParser.Term.Constant(new Token.StringLiteral(s)),
+        return new ExpressionParser.Expression(new TermParser.Term.Constant(new Token.StringLiteral(s)),
                 Optional.empty());
     }
 
     private static ExpressionParser.Expression constantExpression(boolean b) {
         return new ExpressionParser.Expression(
-                new ExpressionParser.Term.KeywordLiteral(Token.KeywordType.from(String.valueOf(b))), Optional.empty());
+                new TermParser.Term.KeywordLiteral(Token.KeywordType.from(String.valueOf(b))), Optional.empty());
 
     }
 

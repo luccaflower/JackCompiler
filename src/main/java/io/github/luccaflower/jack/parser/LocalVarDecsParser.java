@@ -24,8 +24,10 @@ class LocalVarDecsParser {
 
         Optional<VarTypeAndNamesParser.VarTypeAndNames> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
-                case Token.Keyword k when k.type() == Token.KeywordType.VAR: break;
-                default: return Optional.empty();
+                case Token.Keyword k when k.type() == Token.KeywordType.VAR:
+                    break;
+                default:
+                    return Optional.empty();
             }
             tokenizer.advance();
             var typeAndNames = new VarTypeAndNamesParser().parse(tokenizer);

@@ -1,7 +1,7 @@
 package io.github.luccaflower.jack.parser;
 
 import io.github.luccaflower.jack.parser.ExpressionParser.*;
-import io.github.luccaflower.jack.parser.ExpressionParser.Term.*;
+import io.github.luccaflower.jack.parser.TermParser.Term.*;
 import io.github.luccaflower.jack.tokenizer.Token;
 import io.github.luccaflower.jack.tokenizer.Token.*;
 import org.junit.jupiter.api.Test;
@@ -30,30 +30,12 @@ class ExpressionParserTest {
             .isEqualTo(new Constant(new IntegerLiteral(5)));
     }
 
-    @Test
-    void anythingElseMayNotBeAConstant() {
-        assertThat(parser.parse(tokenize("identifier"))).isNotInstanceOf(Constant.class);
-    }
-
-    @Test
-    void aVarNameIsAnIdentifier() {
-        assertThat(parser.parse(tokenize("name"))).map(ExpressionParser.Expression::term)
-            .get()
-            .isEqualTo(new VarName("name"));
-    }
 
     @Test
     void aKeyWordLiteralIsEitherTrueOrFalseOrNullOrThis() {
         assertThat(parser.parse(tokenize("true"))).map(ExpressionParser.Expression::term)
             .get()
             .isEqualTo(new KeywordLiteral(Token.KeywordType.TRUE));
-    }
-
-    @Test
-    void aTermIsAVarNameOrAConstantOrAKeywordLiteral() {
-        assertThat(parser.parse(tokenize("name"))).map(ExpressionParser.Expression::term)
-            .get()
-            .isEqualTo(new VarName("name"));
     }
 
     @Test

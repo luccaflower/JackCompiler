@@ -40,7 +40,8 @@ class StatementsParser {
             return new ReturnParser().parse(tokenizer)
                 .or(() -> new LetStatementParser().parse(tokenizer))
                 .or(() -> new IfStatementParser().parse(tokenizer))
-                .or(() -> new WhileStatementParser().parse(tokenizer));
+                .or(() -> new WhileStatementParser().parse(tokenizer))
+                .or(() -> new SubroutineCallStatementParser().parse(tokenizer));
         }
 
     }
@@ -150,27 +151,23 @@ class StatementsParser {
 
     }
 
-    static class IndexParser {
+    static class SubroutineCallStatementParser {
 
-        public Optional<ExpressionParser.Expression> parse(IteratingTokenizer tokenizer) {
+        public Optional<TermParser.Term.SubroutineCall> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
-                case Token.Symbol s when s.type() == Token.SymbolType.OPEN_SQUARE:
+                case Token.Keyword k when k.type() == Token.KeywordType.DO:
                     break;
-                default:
-                    return Optional.empty();
+                default: return Optional.empty();
             }
             tokenizer.advance();
-            var index = expressionParser.parse(tokenizer);
-            switch (tokenizer.advance()) {
-                case Token.Symbol s when s.type() == Token.SymbolType.CLOSE_SQUARE:
-                    break;
-                default:
-                    throw new SyntaxError("Unexpected token");
-            }
-            return index;
+            TermParser.Term.SubroutineCall subroutineCall = new TermParser.SubroutineCallParser().parse(tokenizer)
+                    .orElseThrow(() -> new SyntaxError("Expected subroutine call after 'do'"));
+            terminateStatementParser.parse(tokenizer);
+            return Optional.of(subroutineCall);
         }
 
     }
+
 
     static class ReturnParser {
 
@@ -188,7 +185,8 @@ class StatementsParser {
 
     }
 
-    sealed interface Statement {
+    sealed interface Statement
+            permits TermParser.Term.SubroutineCall, IfStatement, LetStatement, ReturnStatement, WhileStatement {
 
     }
 
