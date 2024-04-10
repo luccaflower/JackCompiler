@@ -4,7 +4,6 @@ import io.github.luccaflower.jack.tokenizer.IteratingTokenizer;
 import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
-import java.util.List;
 import java.util.Optional;
 
 import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.*;
@@ -12,15 +11,16 @@ import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.*;
 class TermParser {
 
     private static final NameParser nameParser = new NameParser();
+
     private static final ExpressionParser.ExpressionListParser expressionListParser = new ExpressionParser.ExpressionListParser();
 
     public Optional<Term> parse(IteratingTokenizer tokens) {
         return new ConstantParser().parse(tokens)
-                .or(() -> new VarNameParser().parse(tokens))
-                .or(() -> new KeywordLiteralParser().parse(tokens))
-                .or(() -> new UnaryOpTermParser().parse(tokens))
-                .or(() -> new SubroutineCallParser().parse(tokens))
-                .or(() -> new ParenExpressionParser().parse(tokens));
+            .or(() -> new VarNameParser().parse(tokens))
+            .or(() -> new KeywordLiteralParser().parse(tokens))
+            .or(() -> new UnaryOpTermParser().parse(tokens))
+            .or(() -> new SubroutineCallParser().parse(tokens))
+            .or(() -> new ParenExpressionParser().parse(tokens));
     }
 
     static class ConstantParser {
@@ -43,19 +43,26 @@ class TermParser {
     }
 
     static class ParenExpressionParser {
-        Optional<ParenthesisExpression> parse(IteratingTokenizer tokenizer) {
+
+        Optional<Term.ParenthesisExpression> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
-                case Token.Symbol s when s.type() == OPEN_PAREN: break;
-                default: return Optional.empty();
+                case Token.Symbol s when s.type() == OPEN_PAREN:
+                    break;
+                default:
+                    return Optional.empty();
             }
             tokenizer.advance();
-            var expression = new ExpressionParser().parse(tokenizer).orElseThrow(() -> new SyntaxError("Expected expression inside parenthesis"));
+            var expression = new ExpressionParser().parse(tokenizer)
+                .orElseThrow(() -> new SyntaxError("Expected expression inside parenthesis"));
             switch (tokenizer.advance()) {
-                case Token.Symbol s when s.type() == CLOSE_PAREN: break;
-                default: throw new SyntaxError("Expected ) after expression");
+                case Token.Symbol s when s.type() == CLOSE_PAREN:
+                    break;
+                default:
+                    throw new SyntaxError("Expected ) after expression");
             }
-            return Optional.of(new ParenthesisExpression(expression));
+            return Optional.of(new Term.ParenthesisExpression(expression));
         }
+
     }
 
     static class VarNameParser {
@@ -116,7 +123,7 @@ class TermParser {
 
     static class SubroutineCallParser {
 
-        Optional<Term.SubroutineCall> parse(IteratingTokenizer tokenizer) {
+        Optional<Term.DoStatement> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
                 case Token.Identifier i: {
                     break;
@@ -126,69 +133,24 @@ class TermParser {
             }
             switch (tokenizer.lookAhead(1).peek()) {
                 case Token.Symbol s when s.type() == OPEN_PAREN: {
-                    //identifier assured at the start of the function
+                    // identifier assured at the start of the function
                     var subroutineName = nameParser.parse(tokenizer).get();
                     var expressions = expressionListParser.parse(tokenizer);
-                    return Optional.of(new Term.SubroutineCall(Optional.empty(), subroutineName, expressions));
+                    return Optional.of(new Term.LocalDoStatement(subroutineName, expressions));
                 }
                 case Token.Symbol s when s.type() == DOT: {
                     var className = nameParser.parse(tokenizer).get();
                     tokenizer.advance();
-                    var subroutineName = nameParser.parse(tokenizer).orElseThrow(() -> new SyntaxError("Identifier expected after dot"));
+                    var subroutineName = nameParser.parse(tokenizer)
+                        .orElseThrow(() -> new SyntaxError("Identifier expected after dot"));
                     var expressions = expressionListParser.parse(tokenizer);
-                    return Optional.of(new Term.SubroutineCall(Optional.of(className), subroutineName, expressions));
+                    return Optional.of(new Term.ObjectDoStatement(className, subroutineName, expressions));
                 }
-                default: return Optional.empty();
+                default:
+                    return Optional.empty();
             }
         }
 
     }
-    sealed interface Term permits ParenthesisExpression, Term.Constant, Term.KeywordLiteral, Term.SubroutineCall, Term.UnaryOpTerm, Term.VarName {
 
-        record Constant(Token literal) implements Term {
-            public Constant {
-                if (!(literal instanceof Token.StringLiteral) && !(literal instanceof Token.IntegerLiteral)) {
-                    throw new IllegalArgumentException("Constant must be either a string or integer literal");
-                }
-            }
-        }
-
-        record VarName(String name, Optional<ExpressionParser.Expression> index) implements Term {
-        }
-
-        record KeywordLiteral(Token.KeywordType type) implements Term {
-            public KeywordLiteral {
-                switch (type) {
-                    case TRUE, FALSE, NULL, THIS:
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Only true and false are valid keyword constants");
-                }
-            }
-        }
-
-        record UnaryOpTerm(Term.UnaryOp op, Term term) implements Term {
-        }
-
-        enum UnaryOp {
-
-            NEGATIVE, NOT;
-
-            public static UnaryOp from(Token symbol) {
-                return switch (symbol) {
-                    case Token.Symbol s when s.type() == TILDE -> NOT;
-                    case Token.Symbol s when s.type() == MINUS -> NEGATIVE;
-                    default -> throw new IllegalArgumentException("Unary operator must be either ~ or -");
-                };
-            }
-
-        }
-
-        record SubroutineCall(Optional<String> target, String subroutineName,
-                List<ExpressionParser.Expression> arguments) implements Term, StatementsParser.Statement {
-        }
-
-    }
-
-    record ParenthesisExpression(ExpressionParser.Expression expression) implements Term {}
 }

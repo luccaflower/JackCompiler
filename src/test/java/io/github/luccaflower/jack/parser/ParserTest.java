@@ -102,7 +102,7 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).last()
-            .isEqualTo(new StatementsParser.ReturnStatement(Optional.of(constantExpression(0))));
+            .isEqualTo(new Statement.ReturnStatement(Optional.of(constantExpression(0))));
 
     }
 
@@ -117,7 +117,7 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isEqualTo(new StatementsParser.LetStatement("var1", Optional.empty(), constantExpression(0)));
+            .isEqualTo(new Statement.LetStatement("var1", Optional.empty(), constantExpression(0)));
     }
 
     @Test
@@ -131,8 +131,7 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isEqualTo(new StatementsParser.LetStatement("var1", Optional.of(constantExpression(0)),
-                    constantExpression(0)));
+            .isEqualTo(new Statement.LetStatement("var1", Optional.of(constantExpression(0)), constantExpression(0)));
     }
 
     @Test
@@ -145,8 +144,8 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isEqualTo(new StatementsParser.IfStatement(constantExpression(true),
-                    List.of(new StatementsParser.ReturnStatement(Optional.empty())), Optional.empty()));
+            .isEqualTo(new Statement.IfStatement(constantExpression(true),
+                    List.of(new Statement.ReturnStatement(Optional.empty())), Optional.empty()));
     }
 
     @Test
@@ -159,10 +158,9 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.IfStatement.class))
-            .extracting(StatementsParser.IfStatement::elseBlock)
-            .isEqualTo(Optional
-                .of(new StatementsParser.ElseBlock(List.of(new StatementsParser.ReturnStatement(Optional.empty())))));
+            .asInstanceOf(InstanceOfAssertFactories.type(Statement.IfStatement.class))
+            .extracting(Statement.IfStatement::elseBlock)
+            .isEqualTo(Optional.of(new Statement.ElseBlock(List.of(new Statement.ReturnStatement(Optional.empty())))));
 
     }
 
@@ -177,7 +175,7 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isEqualTo(new StatementsParser.WhileStatement(constantExpression(true), List.of()));
+            .isEqualTo(new Statement.WhileStatement(constantExpression(true), List.of()));
     }
 
     @Test
@@ -187,8 +185,7 @@ class ParserTest {
                     method void name() {
                     }
                 }""";
-        assertThat(parser.parse(tokenize(input)).subroutines().get("name"))
-            .isInstanceOf(SubroutinesDecsParser.JackMethod.class);
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name")).isInstanceOf(Subroutine.JackMethod.class);
     }
 
     @Test
@@ -210,8 +207,8 @@ class ParserTest {
                         do Other.call();
                     }
                 }""";
-        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
-                .first().isInstanceOf(TermParser.Term.SubroutineCall.class);
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+            .isInstanceOf(Term.DoStatement.class);
     }
 
     @Test
@@ -224,11 +221,10 @@ class ParserTest {
                         let i = arr[0];
                     }
                 }""";
-        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
-                .last()
-                .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.LetStatement.class))
-                .extracting(s -> s.value().term())
-                .isEqualTo(new TermParser.Term.VarName("arr", Optional.of(constantExpression(0))));
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).last()
+            .asInstanceOf(InstanceOfAssertFactories.type(Statement.LetStatement.class))
+            .extracting(s -> s.value().term())
+            .isEqualTo(new Term.VarName("arr", Optional.of(constantExpression(0))));
     }
 
     @Test
@@ -240,30 +236,26 @@ class ParserTest {
                         let i = 1 + (2 + 3);
                     }
                 }""";
-        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements())
-                .last()
-                .asInstanceOf(InstanceOfAssertFactories.type(StatementsParser.LetStatement.class))
-                .extracting(StatementsParser.LetStatement::value)
-                .extracting(ExpressionParser.Expression::continuation)
-                .extracting(Optional::get)
-                .extracting(ExpressionParser.OpAndExpression::term)
-                .isInstanceOf(ExpressionParser.Expression.class);
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).last()
+            .asInstanceOf(InstanceOfAssertFactories.type(Statement.LetStatement.class))
+            .extracting(Statement.LetStatement::value)
+            .extracting(Expression::continuation)
+            .extracting(Optional::get)
+            .extracting(Expression.OpAndExpression::term)
+            .isInstanceOf(Expression.class);
 
     }
 
-    private static ExpressionParser.Expression constantExpression(int i) {
-        return new ExpressionParser.Expression(new TermParser.Term.Constant(new Token.IntegerLiteral(i)),
-                Optional.empty());
+    private static Expression constantExpression(int i) {
+        return new Expression(new Term.Constant(new Token.IntegerLiteral(i)), Optional.empty());
     }
 
-    private static ExpressionParser.Expression constantExpression(String s) {
-        return new ExpressionParser.Expression(new TermParser.Term.Constant(new Token.StringLiteral(s)),
-                Optional.empty());
+    private static Expression constantExpression(String s) {
+        return new Expression(new Term.Constant(new Token.StringLiteral(s)), Optional.empty());
     }
 
-    private static ExpressionParser.Expression constantExpression(boolean b) {
-        return new ExpressionParser.Expression(
-                new TermParser.Term.KeywordLiteral(Token.KeywordType.from(String.valueOf(b))), Optional.empty());
+    private static Expression constantExpression(boolean b) {
+        return new Expression(new Term.KeywordLiteral(Token.KeywordType.from(String.valueOf(b))), Optional.empty());
 
     }
 

@@ -8,7 +8,7 @@ import java.util.Optional;
 
 class IndexParser {
 
-    public Optional<ExpressionParser.Expression> parse(IteratingTokenizer tokenizer) {
+    public Optional<Expression> parse(IteratingTokenizer tokenizer) {
         switch (tokenizer.peek()) {
             case Token.Symbol s when s.type() == Token.SymbolType.OPEN_SQUARE:
                 break;

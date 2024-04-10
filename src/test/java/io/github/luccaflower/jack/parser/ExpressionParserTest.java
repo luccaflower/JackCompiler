@@ -1,7 +1,6 @@
 package io.github.luccaflower.jack.parser;
 
-import io.github.luccaflower.jack.parser.ExpressionParser.*;
-import io.github.luccaflower.jack.parser.TermParser.Term.*;
+import io.github.luccaflower.jack.parser.Term.*;
 import io.github.luccaflower.jack.tokenizer.Token;
 import io.github.luccaflower.jack.tokenizer.Token.*;
 import org.junit.jupiter.api.Test;
@@ -17,7 +16,7 @@ class ExpressionParserTest {
 
     @Test
     void constantsMayBeStringLiterals() {
-        assertThat(parser.parse(tokenize("\"literal\""))).map(ExpressionParser.Expression::term)
+        assertThat(parser.parse(tokenize("\"literal\""))).map(Expression::term)
             .get()
             .isEqualTo(new Constant(new Token.StringLiteral("literal")));
 
@@ -25,22 +24,21 @@ class ExpressionParserTest {
 
     @Test
     void constantsMayBeIntegerLiterals() {
-        assertThat(parser.parse(tokenize("5"))).map(ExpressionParser.Expression::term)
+        assertThat(parser.parse(tokenize("5"))).map(Expression::term)
             .get()
             .isEqualTo(new Constant(new IntegerLiteral(5)));
     }
 
-
     @Test
     void aKeyWordLiteralIsEitherTrueOrFalseOrNullOrThis() {
-        assertThat(parser.parse(tokenize("true"))).map(ExpressionParser.Expression::term)
+        assertThat(parser.parse(tokenize("true"))).map(Expression::term)
             .get()
             .isEqualTo(new KeywordLiteral(Token.KeywordType.TRUE));
     }
 
     @Test
     void unaryOpTerms() {
-        assertThat(parser.parse(tokenize("~5"))).map(ExpressionParser.Expression::term)
+        assertThat(parser.parse(tokenize("~5"))).map(Expression::term)
             .get()
             .isEqualTo(new UnaryOpTerm(UnaryOp.NOT, new Constant(new IntegerLiteral(5))));
     }
@@ -48,8 +46,8 @@ class ExpressionParserTest {
     @Test
     void severalTermsInOneExpression() {
         assertThat(parser.parse(tokenize("5+\"literal\""))).get()
-            .isEqualTo(
-                    new Expression(new Constant(new IntegerLiteral(5)), Optional.of(new OpAndExpression(Operator.PLUS,
+            .isEqualTo(new Expression(new Constant(new IntegerLiteral(5)),
+                    Optional.of(new Expression.OpAndExpression(Expression.Operator.PLUS,
                             new Expression(new Constant(new StringLiteral("literal")), Optional.empty())))));
     }
 

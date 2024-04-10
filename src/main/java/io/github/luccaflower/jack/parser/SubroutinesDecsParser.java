@@ -5,9 +5,8 @@ import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 import java.util.*;
-import java.util.function.Function;
 
-class SubroutinesDecsParser {
+public class SubroutinesDecsParser {
 
     private static final TypeParser.ReturnTypeParser returnTypeParser = new TypeParser.ReturnTypeParser();
 
@@ -38,14 +37,14 @@ class SubroutinesDecsParser {
             Class<? extends Subroutine> subroutineKind;
             switch (tokenizer.peek()) {
                 case Token.Keyword k when k.type() == Token.KeywordType.FUNCTION: {
-                    subroutineKind = JackFunction.class;
+                    subroutineKind = Subroutine.JackFunction.class;
                     break;
                 }
                 case Token.Keyword k when k.type() == Token.KeywordType.METHOD:
-                    subroutineKind = JackMethod.class;
+                    subroutineKind = Subroutine.JackMethod.class;
                     break;
                 case Token.Keyword k when k.type() == Token.KeywordType.CONSTRUCTOR:
-                    subroutineKind = JackConstructor.class;
+                    subroutineKind = Subroutine.JackConstructor.class;
                     break;
                 default:
                     return Optional.empty();
@@ -61,6 +60,7 @@ class SubroutinesDecsParser {
             endBlockParser.parse(tokenizer);
             return Optional.of(new SubroutineDec(name,
                     builder(subroutineKind).type(type)
+                        .name(name)
                         .arguments(arguments)
                         .locals(locals)
                         .statements(statements)
@@ -75,31 +75,6 @@ class SubroutinesDecsParser {
     record SubroutineDecs(Map<String, Subroutine> subroutines) {
     }
 
-    sealed interface Subroutine {
-
-        Map<String, Type.VarType> arguments();
-
-        Map<String, Type.VarType> locals();
-
-        List<StatementsParser.Statement> statements();
-
-    }
-
-    record JackFunction(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
-            List<StatementsParser.Statement> statements) implements Subroutine {
-
-    }
-
-    record JackMethod(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
-            List<StatementsParser.Statement> statements) implements Subroutine {
-
-    }
-
-    record JackConstructor(Type.ReturnType type, Map<String, Type.VarType> arguments, Map<String, Type.VarType> locals,
-            List<StatementsParser.Statement> statements) implements Subroutine {
-
-    }
-
     public static <T extends Subroutine> Builder<T> builder(Class<T> kind) {
         return new Builder<>(kind);
     }
@@ -108,18 +83,22 @@ class SubroutinesDecsParser {
 
         private final Class<T> kind;
 
+        private String name = "";
+
         private Type.ReturnType type = new Type.VoidType();
 
         private Map<String, Type.VarType> arguments = new HashMap<>();
 
         private Map<String, Type.VarType> locals = new HashMap<>();
 
-        private List<StatementsParser.Statement> statements = new ArrayList<>();
+        private List<Statement> statements = new ArrayList<>();
 
-        private static final Map<String, Factory> factories = Map.of(JackFunction.class.getSimpleName(),
-                b -> new JackFunction(b.type, b.arguments, b.locals, b.statements), JackMethod.class.getSimpleName(),
-                b -> new JackMethod(b.type, b.arguments, b.locals, b.statements), JackConstructor.class.getSimpleName(),
-                b -> new JackConstructor(b.type, b.arguments, b.locals, b.statements));
+        private static final Map<String, Factory> factories = Map.of(Subroutine.JackFunction.class.getSimpleName(),
+                b -> new Subroutine.JackFunction(b.name, b.type, b.arguments, b.locals, b.statements),
+                Subroutine.JackMethod.class.getSimpleName(),
+                b -> new Subroutine.JackMethod(b.name, b.type, b.arguments, b.locals, b.statements),
+                Subroutine.JackConstructor.class.getSimpleName(),
+                b -> new Subroutine.JackConstructor(b.name, b.type, b.arguments, b.locals, b.statements));
 
         @FunctionalInterface
         private interface Factory {
@@ -147,8 +126,13 @@ class SubroutinesDecsParser {
             return this;
         }
 
-        public Builder<T> statements(List<StatementsParser.Statement> statements) {
+        public Builder<T> statements(List<Statement> statements) {
             this.statements = statements;
+            return this;
+        }
+
+        public Builder<T> name(String name) {
+            this.name = name;
             return this;
         }
 

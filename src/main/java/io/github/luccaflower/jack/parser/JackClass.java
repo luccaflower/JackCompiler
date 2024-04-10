@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public record JackClass(String name, Map<String, Type.VarType> statics, Map<String, Type.VarType> fields,
-        Map<String, SubroutinesDecsParser.Subroutine> subroutines) {
+        Map<String, Subroutine> subroutines) {
 
     public static Builder builder() {
         return new Builder();
@@ -18,7 +18,7 @@ public record JackClass(String name, Map<String, Type.VarType> statics, Map<Stri
 
         private Map<String, Type.VarType> fields = new HashMap<>();
 
-        private Map<String, SubroutinesDecsParser.Subroutine> subroutines = new HashMap<>();
+        private Map<String, Subroutine> subroutines = new HashMap<>();
 
         private Builder() {
         }
@@ -38,7 +38,7 @@ public record JackClass(String name, Map<String, Type.VarType> statics, Map<Stri
             return this;
         }
 
-        public Builder subroutines(Map<String, SubroutinesDecsParser.Subroutine> subroutines) {
+        public Builder subroutines(Map<String, Subroutine> subroutines) {
             this.subroutines = subroutines;
             return this;
         }

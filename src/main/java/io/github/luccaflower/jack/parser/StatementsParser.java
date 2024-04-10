@@ -57,7 +57,8 @@ class StatementsParser {
             }
             tokenizer.advance();
             var conditionAndBlock = conditionAndBlockParser.parse(tokenizer);
-            return Optional.of(new WhileStatement(conditionAndBlock.condition(), conditionAndBlock.statements()));
+            return Optional
+                .of(new Statement.WhileStatement(conditionAndBlock.condition(), conditionAndBlock.statements()));
 
         }
 
@@ -75,8 +76,8 @@ class StatementsParser {
             tokenizer.advance();
             var conditionAndBlock = conditionAndBlockParser.parse(tokenizer);
             var elseBlock = new ElseBlockParser().parse(tokenizer);
-            return Optional
-                .of(new IfStatement(conditionAndBlock.condition(), conditionAndBlock.statements(), elseBlock));
+            return Optional.of(new Statement.IfStatement(conditionAndBlock.condition(), conditionAndBlock.statements(),
+                    elseBlock));
         }
 
     }
@@ -105,12 +106,12 @@ class StatementsParser {
 
     }
 
-    record ConditionanAndBlock(ExpressionParser.Expression condition, List<Statement> statements) {
+    record ConditionanAndBlock(Expression condition, List<Statement> statements) {
     }
 
     static class ElseBlockParser {
 
-        Optional<ElseBlock> parse(IteratingTokenizer tokenizer) {
+        Optional<Statement.ElseBlock> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
                 case Token.Keyword k when k.type() == Token.KeywordType.ELSE:
                     break;
@@ -121,7 +122,7 @@ class StatementsParser {
             startBlockParser.parse(tokenizer);
             var statements = new StatementsParser().parse(tokenizer);
             endBlockParser.parse(tokenizer);
-            return Optional.of(new ElseBlock(statements));
+            return Optional.of(new Statement.ElseBlock(statements));
         }
 
     }
@@ -143,7 +144,7 @@ class StatementsParser {
                     var value = expressionParser.parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Expression expected"));
                     terminateStatementParser.parse(tokenizer);
-                    yield Optional.of(new LetStatement(name, index, value));
+                    yield Optional.of(new Statement.LetStatement(name, index, value));
                 }
                 default -> Optional.empty();
             };
@@ -153,21 +154,21 @@ class StatementsParser {
 
     static class SubroutineCallStatementParser {
 
-        public Optional<TermParser.Term.SubroutineCall> parse(IteratingTokenizer tokenizer) {
+        public Optional<Term.DoStatement> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
                 case Token.Keyword k when k.type() == Token.KeywordType.DO:
                     break;
-                default: return Optional.empty();
+                default:
+                    return Optional.empty();
             }
             tokenizer.advance();
-            TermParser.Term.SubroutineCall subroutineCall = new TermParser.SubroutineCallParser().parse(tokenizer)
-                    .orElseThrow(() -> new SyntaxError("Expected subroutine call after 'do'"));
+            Term.DoStatement doStatement = new TermParser.SubroutineCallParser().parse(tokenizer)
+                .orElseThrow(() -> new SyntaxError("Expected subroutine call after 'do'"));
             terminateStatementParser.parse(tokenizer);
-            return Optional.of(subroutineCall);
+            return Optional.of(doStatement);
         }
 
     }
-
 
     static class ReturnParser {
 
@@ -175,7 +176,7 @@ class StatementsParser {
             return switch (tokenizer.peek()) {
                 case Token.Keyword k when k.type() == Token.KeywordType.RETURN -> {
                     tokenizer.advance();
-                    var returnStatement = new ReturnStatement(expressionParser.parse(tokenizer));
+                    var returnStatement = new Statement.ReturnStatement(expressionParser.parse(tokenizer));
                     terminateStatementParser.parse(tokenizer);
                     yield Optional.of(returnStatement);
                 }
@@ -183,28 +184,6 @@ class StatementsParser {
             };
         }
 
-    }
-
-    sealed interface Statement
-            permits TermParser.Term.SubroutineCall, IfStatement, LetStatement, ReturnStatement, WhileStatement {
-
-    }
-
-    record WhileStatement(ExpressionParser.Expression condition, List<Statement> statements) implements Statement {
-    }
-
-    record IfStatement(ExpressionParser.Expression condition, List<Statement> statements,
-            Optional<ElseBlock> elseBlock) implements Statement {
-    }
-
-    record ElseBlock(List<Statement> statements) {
-    }
-
-    record LetStatement(String name, Optional<ExpressionParser.Expression> index,
-            ExpressionParser.Expression value) implements Statement {
-    }
-
-    record ReturnStatement(Optional<ExpressionParser.Expression> returnValue) implements Statement {
     }
 
 }
