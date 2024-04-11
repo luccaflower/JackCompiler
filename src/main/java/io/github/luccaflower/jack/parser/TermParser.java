@@ -16,10 +16,10 @@ class TermParser {
 
     public Optional<Term> parse(IteratingTokenizer tokens) {
         return new ConstantParser().parse(tokens)
+                .or(() -> new SubroutineCallParser().parse(tokens))
+                .or(() -> new KeywordLiteralParser().parse(tokens))
             .or(() -> new VarNameParser().parse(tokens))
-            .or(() -> new KeywordLiteralParser().parse(tokens))
             .or(() -> new UnaryOpTermParser().parse(tokens))
-            .or(() -> new SubroutineCallParser().parse(tokens))
             .or(() -> new ParenExpressionParser().parse(tokens));
     }
 
@@ -75,8 +75,9 @@ class TermParser {
                 return Optional.empty();
             }
             tokens.advance();
-            var index = new IndexParser().parse(tokens);
-            return Optional.of(new Term.VarName(i.name(), index));
+            return Optional.of(new IndexParser().parse(tokens)
+                    .<Term.VarName>map(index -> new Term.IndexedVarname(i.name(), index))
+                    .orElseGet(() -> new Term.NonIndexedVarName(i.name())));
         }
 
     }
@@ -111,8 +112,8 @@ class TermParser {
             var nextTerm = new TermParser().parse(tokens.lookAhead(1));
             if (nextTerm.isPresent()) {
                 var op = tokens.advance();
-                tokens.advance();
-                return Optional.of(new Term.UnaryOpTerm(Term.UnaryOp.from(op), nextTerm.get()));
+                var next = new TermParser().parse(tokens).orElseThrow(() -> new SyntaxError("Expression expected"));
+                return Optional.of(new Term.UnaryOpTerm(Term.UnaryOp.from(op), next));
             }
             else {
                 return Optional.empty();
@@ -123,7 +124,7 @@ class TermParser {
 
     static class SubroutineCallParser {
 
-        Optional<Term.DoStatement> parse(IteratingTokenizer tokenizer) {
+        Optional<Term.SubroutineCall> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
                 case Token.Identifier i: {
                     break;
@@ -136,7 +137,7 @@ class TermParser {
                     // identifier assured at the start of the function
                     var subroutineName = nameParser.parse(tokenizer).get();
                     var expressions = expressionListParser.parse(tokenizer);
-                    return Optional.of(new Term.LocalDoStatement(subroutineName, expressions));
+                    return Optional.of(new Term.LocalSubroutineCall(subroutineName, expressions));
                 }
                 case Token.Symbol s when s.type() == DOT: {
                     var className = nameParser.parse(tokenizer).get();
@@ -144,7 +145,7 @@ class TermParser {
                     var subroutineName = nameParser.parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Identifier expected after dot"));
                     var expressions = expressionListParser.parse(tokenizer);
-                    return Optional.of(new Term.ObjectDoStatement(className, subroutineName, expressions));
+                    return Optional.of(new Term.ObjectSubroutineCall(className, subroutineName, expressions));
                 }
                 default:
                     return Optional.empty();

@@ -117,7 +117,8 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isEqualTo(new Statement.LetStatement("var1", Optional.empty(), constantExpression(0)));
+                .asInstanceOf(InstanceOfAssertFactories.type(Statement.LetStatement.class))
+                .isEqualTo(new Statement.NonIndexedLetStatement("var1", constantExpression(0)));
     }
 
     @Test
@@ -131,7 +132,9 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isEqualTo(new Statement.LetStatement("var1", Optional.of(constantExpression(0)), constantExpression(0)));
+                .asInstanceOf(InstanceOfAssertFactories.type(Statement.IndexedLetStatement.class))
+                .extracting(Statement.IndexedLetStatement::index)
+                .isEqualTo(constantExpression(0));
     }
 
     @Test
@@ -208,7 +211,7 @@ class ParserTest {
                     }
                 }""";
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
-            .isInstanceOf(Term.DoStatement.class);
+            .isInstanceOf(Term.SubroutineCall.class);
     }
 
     @Test
@@ -224,7 +227,9 @@ class ParserTest {
         assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).last()
             .asInstanceOf(InstanceOfAssertFactories.type(Statement.LetStatement.class))
             .extracting(s -> s.value().term())
-            .isEqualTo(new Term.VarName("arr", Optional.of(constantExpression(0))));
+                .asInstanceOf(InstanceOfAssertFactories.type(Term.IndexedVarname.class))
+                .extracting(Term.IndexedVarname::index)
+            .isEqualTo(constantExpression(0));
     }
 
     @Test
@@ -244,6 +249,50 @@ class ParserTest {
             .extracting(Expression.OpAndExpression::term)
             .isInstanceOf(Expression.class);
 
+    }
+
+    @Test
+    void equalityOperatorInConditions() {
+        var input = """
+                class Name {
+                    function void name() {
+                        if (1 = 1) { }
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+                .asInstanceOf(InstanceOfAssertFactories.type(Statement.IfStatement.class))
+                .extracting(Statement.IfStatement::condition)
+                .isEqualTo(new Expression(new Term.Constant(new Token.IntegerLiteral(1)), Optional.of(new Expression.OpAndExpression(Expression.Operator.EQUALS, constantExpression(1)))));
+    }
+    @Test
+    void andOperatorInConditions() {
+        var input = """
+                class Name {
+                    function void name() {
+                        if (1 & 1) { }
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+                .asInstanceOf(InstanceOfAssertFactories.type(Statement.IfStatement.class))
+                .extracting(Statement.IfStatement::condition)
+                .isEqualTo(new Expression(new Term.Constant(new Token.IntegerLiteral(1)), Optional.of(new Expression.OpAndExpression(Expression.Operator.BITWISE_AND, constantExpression(1)))));
+    }
+
+    @Test
+    void unaryOpExpressionInConditions() {
+        var input = """
+                class Name {
+                    function void name() {
+                        if (~(1 & 1)) { }
+                    }
+                }""";
+        assertThat(parser.parse(tokenize(input)).subroutines().get("name").statements()).first()
+                .asInstanceOf(InstanceOfAssertFactories.type(Statement.IfStatement.class))
+                .extracting(Statement.IfStatement::condition)
+                .extracting(Expression::term)
+                .asInstanceOf(InstanceOfAssertFactories.type(Term.UnaryOpTerm.class))
+                .extracting(Term.UnaryOpTerm::op)
+                .isEqualTo(Term.UnaryOp.NOT);
     }
 
     private static Expression constantExpression(int i) {

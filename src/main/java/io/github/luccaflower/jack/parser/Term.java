@@ -3,12 +3,11 @@ package io.github.luccaflower.jack.parser;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 import java.util.List;
-import java.util.Optional;
 
 import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.MINUS;
 import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.TILDE;
 
-public sealed interface Term permits Term.Constant, Term.DoStatement, Term.KeywordLiteral, Term.UnaryOpTerm, Term.VarName, Term.ParenthesisExpression {
+public sealed interface Term permits Term.Constant, Term.KeywordLiteral, Term.ParenthesisExpression, Term.SubroutineCall, Term.UnaryOpTerm, Term.VarName {
 
     record Constant(Token literal) implements Term {
         public Constant {
@@ -18,8 +17,12 @@ public sealed interface Term permits Term.Constant, Term.DoStatement, Term.Keywo
         }
     }
 
-    record VarName(String name, Optional<Expression> index) implements Term {
+    sealed interface VarName extends Term {
+        String name();
     }
+
+    record NonIndexedVarName(String name) implements VarName {}
+    record IndexedVarname(String name, Expression index) implements VarName {}
 
     record KeywordLiteral(Token.KeywordType type) implements Term {
         public KeywordLiteral {
@@ -37,7 +40,19 @@ public sealed interface Term permits Term.Constant, Term.DoStatement, Term.Keywo
 
     enum UnaryOp {
 
-        NEGATIVE, NOT;
+        NEGATIVE("neg"), NOT("not");
+
+
+        private final String c;
+
+        UnaryOp(String c) {
+
+            this.c = c;
+        }
+
+        public String instruction() {
+            return c;
+        }
 
         public static UnaryOp from(Token symbol) {
             return switch (symbol) {
@@ -49,14 +64,14 @@ public sealed interface Term permits Term.Constant, Term.DoStatement, Term.Keywo
 
     }
 
-    sealed interface DoStatement extends Term, Statement {
+    sealed interface SubroutineCall extends Term, Statement {
 
     }
-    record LocalDoStatement(String subroutineName,
-                            List<Expression> arguments) implements DoStatement {
+    record LocalSubroutineCall(String subroutineName,
+                               List<Expression> arguments) implements SubroutineCall {
     }
-    record ObjectDoStatement(String target, String subroutineName,
-                             List<Expression> arguments) implements DoStatement {
+    record ObjectSubroutineCall(String target, String subroutineName,
+                                List<Expression> arguments) implements SubroutineCall {
     }
 
     record ParenthesisExpression(Expression expression) implements Term {

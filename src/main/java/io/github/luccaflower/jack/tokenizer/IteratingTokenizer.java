@@ -21,7 +21,7 @@ public class IteratingTokenizer {
 
     private static final Pattern LINE_COMMENT = Pattern.compile("//.*");
 
-    private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*\\*/", Pattern.DOTALL);
+    private static final Pattern BLOCK_COMMENT = Pattern.compile("/\\*.*?\\*/", Pattern.DOTALL);
 
     private final String input;
 
@@ -49,10 +49,6 @@ public class IteratingTokenizer {
 
     private String rest() {
         return input.substring(cursor);
-    }
-
-    public Optional<Token> maybePeek() {
-        return getNext(rest()).map(ParseResult::token);
     }
 
     public Token peek() {

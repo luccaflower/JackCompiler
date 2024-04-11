@@ -9,6 +9,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main {
 
@@ -38,7 +39,7 @@ public class Main {
     }
 
     private static void writeClass(JackClass c) {
-        var compiled = new ClassWriter(c).write();
+        var compiled = new ClassWriter(c).write().lines().filter(l -> !l.isBlank()).collect(Collectors.joining("\n"));
         var file = new File("%s/%s.vm".formatted(path, c.name()));
         if (file.exists() && !file.delete()) {
             throw new IllegalStateException("Cannot overwrite file " + file.getName());

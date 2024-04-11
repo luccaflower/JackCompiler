@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-class StatementsParser {
+public class StatementsParser {
 
     private static final TerminateStatementParser terminateStatementParser = new TerminateStatementParser();
 
@@ -34,7 +34,7 @@ class StatementsParser {
         return statements;
     }
 
-    static class StatementParser {
+    public static class StatementParser {
 
         public Optional<Statement> parse(IteratingTokenizer tokenizer) {
             return new ReturnParser().parse(tokenizer)
@@ -112,6 +112,9 @@ class StatementsParser {
     static class ElseBlockParser {
 
         Optional<Statement.ElseBlock> parse(IteratingTokenizer tokenizer) {
+            if (!tokenizer.hasMoreTokens()) {
+                return Optional.empty();
+            }
             switch (tokenizer.peek()) {
                 case Token.Keyword k when k.type() == Token.KeywordType.ELSE:
                     break;
@@ -143,8 +146,10 @@ class StatementsParser {
                     }
                     var value = expressionParser.parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Expression expected"));
+                    var statement = index.<Statement.LetStatement>map(i -> new Statement.IndexedLetStatement(name, i, value))
+                                    .orElseGet(() -> new Statement.NonIndexedLetStatement(name, value));
                     terminateStatementParser.parse(tokenizer);
-                    yield Optional.of(new Statement.LetStatement(name, index, value));
+                    yield Optional.of(statement);
                 }
                 default -> Optional.empty();
             };
@@ -154,7 +159,7 @@ class StatementsParser {
 
     static class SubroutineCallStatementParser {
 
-        public Optional<Term.DoStatement> parse(IteratingTokenizer tokenizer) {
+        public Optional<Term.SubroutineCall> parse(IteratingTokenizer tokenizer) {
             switch (tokenizer.peek()) {
                 case Token.Keyword k when k.type() == Token.KeywordType.DO:
                     break;
@@ -162,10 +167,10 @@ class StatementsParser {
                     return Optional.empty();
             }
             tokenizer.advance();
-            Term.DoStatement doStatement = new TermParser.SubroutineCallParser().parse(tokenizer)
+            Term.SubroutineCall subroutineCall = new TermParser.SubroutineCallParser().parse(tokenizer)
                 .orElseThrow(() -> new SyntaxError("Expected subroutine call after 'do'"));
             terminateStatementParser.parse(tokenizer);
-            return Optional.of(doStatement);
+            return Optional.of(subroutineCall);
         }
 
     }

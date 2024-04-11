@@ -21,6 +21,13 @@ class ParameterListParser {
         var parameterParser = new ParameterParser();
         while (parameterParser.parse(tokenizer).orElse(null) instanceof Parameter p) {
             arguments.put(p.name(), p.type());
+            switch (tokenizer.peek()) {
+                case Token.Symbol s when s.type() == Token.SymbolType.COMMA: {
+                    tokenizer.advance();
+                    break;
+                }
+                default: break;
+            }
         }
         switch (tokenizer.advance()) {
             case Token.Symbol s when s.type() == Token.SymbolType.CLOSE_PAREN:
