@@ -16,8 +16,8 @@ class TermParser {
 
     public Optional<Term> parse(IteratingTokenizer tokens) {
         return new ConstantParser().parse(tokens)
-                .or(() -> new SubroutineCallParser().parse(tokens))
-                .or(() -> new KeywordLiteralParser().parse(tokens))
+            .or(() -> new SubroutineCallParser().parse(tokens))
+            .or(() -> new KeywordLiteralParser().parse(tokens))
             .or(() -> new VarNameParser().parse(tokens))
             .or(() -> new UnaryOpTermParser().parse(tokens))
             .or(() -> new ParenExpressionParser().parse(tokens));
@@ -75,9 +75,10 @@ class TermParser {
                 return Optional.empty();
             }
             tokens.advance();
-            return Optional.of(new IndexParser().parse(tokens)
-                    .<Term.VarName>map(index -> new Term.IndexedVarname(i.name(), index))
-                    .orElseGet(() -> new Term.NonIndexedVarName(i.name())));
+            return Optional.of(new IndexParser()
+                .parse(tokens).<Term
+                        .VarName>map(index -> new Term.IndexedVarname(i.name(), index))
+                .orElseGet(() -> new Term.NonIndexedVarName(i.name())));
         }
 
     }

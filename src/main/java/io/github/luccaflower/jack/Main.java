@@ -15,10 +15,11 @@ public class Main {
 
     private static String path;
 
-    public static void main(String [] args) {
+    public static void main(String[] args) {
         if (args.length == 0) {
             path = ".";
-        } else {
+        }
+        else {
             path = args[0];
         }
         var directory = new File(path);
@@ -27,13 +28,13 @@ public class Main {
         }
         List<File> files = Arrays.stream(directory.listFiles()).filter(f -> f.getName().endsWith(".jack")).toList();
         var classes = files.stream()
-                .map(Main::inputStream)
-                .map(BufferedInputStream::new)
-                .map(Main::readAllBytes)
-                .map(b -> new String(b, StandardCharsets.UTF_8))
-                .map(IteratingTokenizer::new)
-                .map(t -> new Parser().parse(t))
-                .toList();
+            .map(Main::inputStream)
+            .map(BufferedInputStream::new)
+            .map(Main::readAllBytes)
+            .map(b -> new String(b, StandardCharsets.UTF_8))
+            .map(IteratingTokenizer::new)
+            .map(t -> new Parser().parse(t))
+            .toList();
         classes.forEach(Main::writeClass);
 
     }
@@ -46,7 +47,8 @@ public class Main {
         }
         try (var os = new FileOutputStream(file)) {
             os.write(compiled.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -54,7 +56,8 @@ public class Main {
     private static byte[] readAllBytes(BufferedInputStream is) {
         try {
             return is.readAllBytes();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             throw new IllegalStateException("huh.");
         }
     }
@@ -62,8 +65,10 @@ public class Main {
     private static FileInputStream inputStream(File f) {
         try {
             return new FileInputStream(f);
-        } catch (FileNotFoundException e) {
+        }
+        catch (FileNotFoundException e) {
             throw new IllegalStateException("That shouldn't happen");
         }
     }
+
 }

@@ -7,6 +7,7 @@ import static io.github.luccaflower.jack.TokenizerUtils.tokenize;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 class SevenTest {
+
     private final String input = """
             // This file is part of www.nand2tetris.org
             // and the book "The Elements of Computing Systems"
@@ -25,9 +26,10 @@ class SevenTest {
                }
 
             }""";
+
     @Test
     void parser() {
-        assertThatCode(() -> new Parser().parse(tokenize(input)))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> new Parser().parse(tokenize(input))).doesNotThrowAnyException();
     }
+
 }

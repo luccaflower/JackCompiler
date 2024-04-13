@@ -146,8 +146,9 @@ public class StatementsParser {
                     }
                     var value = expressionParser.parse(tokenizer)
                         .orElseThrow(() -> new SyntaxError("Expression expected"));
-                    var statement = index.<Statement.LetStatement>map(i -> new Statement.IndexedLetStatement(name, i, value))
-                                    .orElseGet(() -> new Statement.NonIndexedLetStatement(name, value));
+                    var statement = index.<Statement.LetStatement>map(
+                            i -> new Statement.IndexedLetStatement(name, i, value))
+                        .orElseGet(() -> new Statement.NonIndexedLetStatement(name, value));
                     terminateStatementParser.parse(tokenizer);
                     yield Optional.of(statement);
                 }

@@ -7,7 +7,8 @@ import java.util.List;
 import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.MINUS;
 import static io.github.luccaflower.jack.tokenizer.Token.SymbolType.TILDE;
 
-public sealed interface Term permits Term.Constant, Term.KeywordLiteral, Term.ParenthesisExpression, Term.SubroutineCall, Term.UnaryOpTerm, Term.VarName {
+public sealed interface Term permits Term.Constant, Term.KeywordLiteral, Term.ParenthesisExpression,
+        Term.SubroutineCall, Term.UnaryOpTerm, Term.VarName {
 
     record Constant(Token literal) implements Term {
         public Constant {
@@ -18,11 +19,16 @@ public sealed interface Term permits Term.Constant, Term.KeywordLiteral, Term.Pa
     }
 
     sealed interface VarName extends Term {
+
         String name();
+
     }
 
-    record NonIndexedVarName(String name) implements VarName {}
-    record IndexedVarname(String name, Expression index) implements VarName {}
+    record NonIndexedVarName(String name) implements VarName {
+    }
+
+    record IndexedVarname(String name, Expression index) implements VarName {
+    }
 
     record KeywordLiteral(Token.KeywordType type) implements Term {
         public KeywordLiteral {
@@ -41,7 +47,6 @@ public sealed interface Term permits Term.Constant, Term.KeywordLiteral, Term.Pa
     enum UnaryOp {
 
         NEGATIVE("neg"), NOT("not");
-
 
         private final String c;
 
@@ -67,13 +72,15 @@ public sealed interface Term permits Term.Constant, Term.KeywordLiteral, Term.Pa
     sealed interface SubroutineCall extends Term, Statement {
 
     }
-    record LocalSubroutineCall(String subroutineName,
-                               List<Expression> arguments) implements SubroutineCall {
+
+    record LocalSubroutineCall(String subroutineName, List<Expression> arguments) implements SubroutineCall {
     }
+
     record ObjectSubroutineCall(String target, String subroutineName,
-                                List<Expression> arguments) implements SubroutineCall {
+            List<Expression> arguments) implements SubroutineCall {
     }
 
     record ParenthesisExpression(Expression expression) implements Term {
     }
+
 }

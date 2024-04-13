@@ -26,7 +26,8 @@ class ParameterListParser {
                     tokenizer.advance();
                     break;
                 }
-                default: break;
+                default:
+                    break;
             }
         }
         switch (tokenizer.advance()) {

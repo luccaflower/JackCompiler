@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 class ConvertToBinTest {
+
     private static final String input = """
             // This file is part of www.nand2tetris.org
             // and the book "The Elements of Computing Systems"
@@ -49,14 +50,14 @@ class ConvertToBinTest {
                 function void convert(int value) {
                 	var int mask, position;
                 	var boolean loop;
-                	
+
                 	let loop = true;
                 	while (loop) {
                 	    let position = position + 1;
                 	    let mask = Main.nextMask(mask);
-                	
+
                 	    if (~(position > 16)) {
-                	
+
                 	        if (~((value & mask) = 0)) {
                 	            do Memory.poke(8000 + position, 1);
                    	        }
@@ -96,15 +97,14 @@ class ConvertToBinTest {
 
     @Test
     void convertToBin() {
-        assertThatCode(() -> new Parser().parse(tokenize(input)))
-                .doesNotThrowAnyException();
+        assertThatCode(() -> new Parser().parse(tokenize(input))).doesNotThrowAnyException();
     }
 
     @Test
     void handlesConditionsProperly() {
         var input = """
                 if (~(position > 16)) {
-                                
+
                     	        if (~((value & mask) = 0)) {
                     	            do Memory.poke(8000 + position, 1);
                        	        }
@@ -116,4 +116,5 @@ class ConvertToBinTest {
         assertThatCode(() -> new StatementsParser.StatementParser().parse(tokenize(input))).doesNotThrowAnyException();
 
     }
+
 }
