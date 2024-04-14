@@ -4,6 +4,7 @@ import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 sealed public interface Type {
+
     String name();
 
     sealed interface VarType extends Type {

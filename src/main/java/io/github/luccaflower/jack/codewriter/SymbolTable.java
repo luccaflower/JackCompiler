@@ -1,32 +1,30 @@
 package io.github.luccaflower.jack.codewriter;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-public record SymbolTable(List<String> names, Scope scope) {
+public record SymbolTable(Map<String, Symbol> symbols, Scope scope) {
 
-    public SymbolTable {
-
-    }
-
-    public static SymbolTable create(List<Entry> entries, Scope scope) {
-        return new SymbolTable(entries.stream().map(Entry::name).toList(), scope);
+    public static SymbolTable create(List<Identifier> entries, Scope scope) {
+        return new SymbolTable(IntStream.range(0, entries.size())
+            .mapToObj(i -> new Symbol(i, scope, entries.get(i).type()))
+            .collect(Collectors.toMap(e -> entries.get(e.index()).name(), e -> e)), scope);
     }
 
     Optional<Symbol> resolve(String name) {
-        if (!names.contains(name)) {
-            return Optional.empty();
-        }
-        else {
-            return Optional.of(new Symbol(names.indexOf(name), scope));
-        }
+        return Optional.ofNullable(symbols.get(name));
     }
 
-    record Entry(String name, String type) {}
-    record Symbol(int index, Scope scope) {
+    public record Identifier(String name, String type) {
     }
 
-    enum Scope {
+    record Symbol(int index, Scope scope, String type) {
+    }
+
+    public enum Scope {
 
         LOCAL, FIELD, STATIC, SUBROUTINE, ARGUMENT
 
