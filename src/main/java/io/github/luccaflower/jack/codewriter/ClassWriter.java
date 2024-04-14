@@ -191,15 +191,18 @@ public class ClassWriter {
                         case STATIC -> "static";
                         case SUBROUTINE -> throw new SyntaxError("Invalid assignment to subroutine '%s'".formatted(name));
                     };
-                    var pushArr = "push %s %d".formatted(scope, symbol.index());
-                    var pushIndex = new ExpressionWriter(locals, fields).write(index);
-                    var popArrayPointer = """
-                            add
+                    var pushArr = """
+                            push %s %d
+                            %s
+                            add""".formatted(scope, symbol.index(), new ExpressionWriter(locals, arguments).write(index));
+                    var pushValue = new ExpressionWriter(locals, arguments).write(value);
+                    var popIntoArray = """
+                            pop temp 0
                             pop pointer 1
+                            push temp 0
+                            pop that 0
                             """;
-                    var pushValue = new ExpressionWriter(locals, fields).write(value);
-                    var popIntoArray = "pop that 0";
-                    yield String.join("\n", pushArr, pushIndex, popArrayPointer, pushValue, popIntoArray);
+                    yield String.join("\n", pushArr, pushValue, popIntoArray);
                 }
                 case Statement.ReturnStatement r -> {
                     var returnVal = r.returnValue()
