@@ -43,11 +43,16 @@ public class ClassWriter {
 
     public String write() {
         return jackClass.subroutines().values().stream().map(s -> switch (s) {
-            case Subroutine.JackFunction f ->
-                new SubroutineWriter(f, SymbolTable.create(List.of(), FIELD), from(f.arguments(), ARGUMENT));
-            case Subroutine.JackConstructor c -> new SubroutineWriter(c, fields, from(c.arguments(), ARGUMENT));
+            case Subroutine.JackFunction f -> {
+                List<SymbolTable.Identifier> identifiers = f.arguments().stream().map(p -> new SymbolTable.Identifier(p.name(), p.type().name())).toList();
+                yield new SubroutineWriter(f, SymbolTable.create(List.of(), FIELD), SymbolTable.create(identifiers, ARGUMENT));
+            }
+            case Subroutine.JackConstructor c -> {
+                var arguments = c.arguments().stream().map(p -> new SymbolTable.Identifier(p.name(), p.type().name())).toList();
+                yield new SubroutineWriter(c, fields, SymbolTable.create(arguments, ARGUMENT));
+            }
             case Subroutine.JackMethod m -> {
-                var argsNames = new ArrayList<>(getList(m.arguments()));
+                var argsNames = new ArrayList<>(m.arguments().stream().map(p -> new SymbolTable.Identifier(p.name(), p.type().name())).toList());
                 argsNames.addFirst(new SymbolTable.Identifier("this", jackClass.name()));
                 yield new SubroutineWriter(m, fields, SymbolTable.create(argsNames, ARGUMENT));
             }
@@ -173,7 +178,7 @@ public class ClassWriter {
                         case ARGUMENT -> "pop argument " + symbol.index();
                         case LOCAL -> "pop local " + symbol.index();
                         case FIELD -> "pop this " + symbol.index();
-                        case STATIC -> "pop static %s".formatted(jackClass.name()) + symbol.index();
+                        case STATIC -> "pop static " + symbol.index();
                         case SUBROUTINE -> throw new SyntaxError("Can't assign value to subroutine");
                     };
                     yield String.join("\n", pushValue, popToSymbol);
@@ -320,7 +325,7 @@ public class ClassWriter {
                         case ARGUMENT -> "push argument " + symbol.index();
                         case LOCAL -> "push local " + symbol.index();
                         case FIELD -> "push this " + symbol.index();
-                        case STATIC -> "push static %s." + symbol.index();
+                        case STATIC -> "push static " + symbol.index();
                         case SUBROUTINE -> throw new SyntaxError("Unexpected subroutine name");
                     };
                 }
@@ -367,7 +372,7 @@ public class ClassWriter {
                         .or(() -> locals.resolve(call.target()))
                         .or(() -> fields.resolve(call.target()))
                         .or(() -> statics.resolve(call.target()));
-                    var pushObject = symbol.map(s -> "push %s %d".formatted(s.scope().name(), s.index())).orElse("");
+                    var pushObject = symbol.map(s -> "push %s %d".formatted(nameFor(s), s.index())).orElse("");
                     var pushArguments = call.arguments()
                         .stream()
                         .map(a -> new ExpressionWriter(locals, arguments).write(a))
@@ -382,6 +387,16 @@ public class ClassWriter {
                     yield String.join("\n", pushObject, pushArguments, doCall);
                 }
                 default -> throw new RuntimeException("Not implemented: " + term.getClass().getSimpleName());
+            };
+        }
+
+        private static String nameFor(SymbolTable.Symbol s) {
+            return switch (s.scope()) {
+                case ARGUMENT -> "argument";
+                case LOCAL -> "local";
+                case FIELD -> "this";
+                case STATIC -> "static";
+                case SUBROUTINE -> throw new SyntaxError("what the fuck");
             };
         }
 

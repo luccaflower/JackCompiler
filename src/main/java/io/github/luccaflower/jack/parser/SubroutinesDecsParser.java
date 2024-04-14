@@ -5,6 +5,7 @@ import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SubroutinesDecsParser {
 
@@ -53,7 +54,7 @@ public class SubroutinesDecsParser {
             var type = returnTypeParser.parse(tokenizer)
                 .orElseThrow(() -> new SyntaxError("Function must have a return type"));
             var name = nameParser.parse(tokenizer).orElseThrow(() -> new SyntaxError("Identifier expected"));
-            var arguments = parameterListParser.parse(tokenizer);
+            var arguments = parameterListParser.parseAsList(tokenizer);
             startBlockParser.parse(tokenizer);
             var locals = localVarDecsParser.parse(tokenizer);
             var statements = statementsParser.parse(tokenizer);
@@ -87,7 +88,7 @@ public class SubroutinesDecsParser {
 
         private Type.ReturnType type = new Type.VoidType();
 
-        private Map<String, Type.VarType> arguments = new HashMap<>();
+        private List<Parameter> arguments = new ArrayList<>();
 
         private Map<String, Type.VarType> locals = new HashMap<>();
 
@@ -116,8 +117,8 @@ public class SubroutinesDecsParser {
             return this;
         }
 
-        public Builder<T> arguments(Map<String, Type.VarType> arguments) {
-            this.arguments = arguments;
+        public Builder<T> arguments(List<Parameter> parameters) {
+            this.arguments = parameters;
             return this;
         }
 

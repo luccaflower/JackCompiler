@@ -7,23 +7,23 @@ public sealed interface Subroutine {
 
     String name();
 
-    Map<String, Type.VarType> arguments();
+    List<Parameter> arguments();
 
     Map<String, Type.VarType> locals();
 
     List<Statement> statements();
 
-    record JackFunction(String name, Type.ReturnType type, Map<String, Type.VarType> arguments,
+    record JackFunction(String name, Type.ReturnType type, List<Parameter> arguments,
             Map<String, Type.VarType> locals, List<Statement> statements) implements Subroutine {
 
     }
 
-    record JackMethod(String name, Type.ReturnType type, Map<String, Type.VarType> arguments,
+    record JackMethod(String name, Type.ReturnType type, List<Parameter> arguments,
             Map<String, Type.VarType> locals, List<Statement> statements) implements Subroutine {
 
     }
 
-    record JackConstructor(String name, Type.ReturnType type, Map<String, Type.VarType> arguments,
+    record JackConstructor(String name, Type.ReturnType type, List<Parameter> arguments,
             Map<String, Type.VarType> locals, List<Statement> statements) implements Subroutine {
 
     }

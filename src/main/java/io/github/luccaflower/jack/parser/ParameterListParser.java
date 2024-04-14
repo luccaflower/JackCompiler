@@ -4,23 +4,21 @@ import io.github.luccaflower.jack.tokenizer.IteratingTokenizer;
 import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 class ParameterListParser {
 
-    Map<String, Type.VarType> parse(IteratingTokenizer tokenizer) {
+    List<Parameter> parseAsList(IteratingTokenizer tokenizer) {
         switch (tokenizer.advance()) {
             case Token.Symbol s when s.type() == Token.SymbolType.OPEN_PAREN:
                 break;
             default:
                 throw new SyntaxError("Expected parameter list");
         }
-        var arguments = new HashMap<String, Type.VarType>();
+        var arguments = new ArrayList<Parameter>();
         var parameterParser = new ParameterParser();
         while (parameterParser.parse(tokenizer).orElse(null) instanceof Parameter p) {
-            arguments.put(p.name(), p.type());
+            arguments.add(p);
             switch (tokenizer.peek()) {
                 case Token.Symbol s when s.type() == Token.SymbolType.COMMA: {
                     tokenizer.advance();
@@ -37,9 +35,6 @@ class ParameterListParser {
                 throw new SyntaxError("Expected end of parameter list");
         }
         return arguments;
-    }
-
-    record Parameter(String name, Type.VarType type) {
     }
 
     static class ParameterParser {
