@@ -3,7 +3,8 @@ package io.github.luccaflower.jack.parser;
 import io.github.luccaflower.jack.tokenizer.SyntaxError;
 import io.github.luccaflower.jack.tokenizer.Token;
 
-sealed interface Type {
+sealed public interface Type {
+    String name();
 
     sealed interface VarType extends Type {
 
@@ -32,6 +33,9 @@ sealed interface Type {
     }
 
     record VoidType() implements ReturnType {
+        public String name() {
+            return "void";
+        }
     }
 
 }

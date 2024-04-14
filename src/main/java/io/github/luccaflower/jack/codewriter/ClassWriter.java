@@ -6,10 +6,11 @@ import io.github.luccaflower.jack.tokenizer.Token;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static io.github.luccaflower.jack.codewriter.SymbolTable.Scope.ARGUMENT;
-import static io.github.luccaflower.jack.codewriter.SymbolTable.Scope.LOCAL;
+import static io.github.luccaflower.jack.codewriter.SymbolTable.Scope.*;
 
 public class ClassWriter {
 
@@ -19,24 +20,36 @@ public class ClassWriter {
 
     private final SymbolTable fields;
 
-    private final SymbolTable subroutines;
-
     private int whileCounter = 0;
 
     private int ifCounter = 0;
 
     public ClassWriter(JackClass jackClass) {
         this.jackClass = jackClass;
-        statics = new SymbolTable(jackClass.statics().keySet().stream().toList(), SymbolTable.Scope.STATIC);
-        fields = new SymbolTable(jackClass.fields().keySet().stream().toList(), SymbolTable.Scope.FIELD);
-        subroutines = new SymbolTable(jackClass.subroutines().keySet().stream().toList(), SymbolTable.Scope.SUBROUTINE);
+        statics = from(jackClass.statics(), STATIC);
+        fields = from(jackClass.fields(), FIELD);
+    }
+    private SymbolTable from(Map<String, Type.VarType> identifiers, SymbolTable.Scope scope) {
+        return SymbolTable.create(getList(identifiers), scope);
+    }
+
+    private static List<SymbolTable.Entry> getList(Map<String, Type.VarType> identifiers) {
+        return identifiers.entrySet().stream().map(e -> new SymbolTable.Entry(e.getKey(), e.getValue().name())).toList();
     }
 
     public String write() {
         return jackClass.subroutines()
             .values()
             .stream()
-            .map(SubroutineWriter::new)
+            .map(s -> switch (s) {
+                case Subroutine.JackFunction f -> new SubroutineWriter(f, SymbolTable.create(List.of(), FIELD), from(f.arguments(), ARGUMENT));
+                case Subroutine.JackConstructor c -> new SubroutineWriter(c, fields, from(c.arguments(), ARGUMENT));
+                case Subroutine.JackMethod m -> {
+                    var argsNames = new ArrayList<>(getList(m.arguments()));
+                    argsNames.addFirst(new SymbolTable.Entry("this", jackClass.name()));
+                    yield new SubroutineWriter(m, fields, SymbolTable.create(argsNames, ARGUMENT));
+                }
+            })
             .map(SubroutineWriter::write)
             .collect(Collectors.joining("\n"));
     }
@@ -48,23 +61,35 @@ public class ClassWriter {
         private final SymbolTable locals;
 
         private final SymbolTable argNames;
+        private SymbolTable fields;
 
-        public SubroutineWriter(Subroutine subroutine) {
+        public SubroutineWriter(Subroutine subroutine, SymbolTable fields, SymbolTable argNames) {
             this.subroutine = subroutine;
-            var localNames = new ArrayList<>(subroutine.locals().keySet().stream().toList());
-            argNames = new SymbolTable(subroutine.arguments().keySet().stream().toList(), ARGUMENT);
-            locals = new SymbolTable(localNames, LOCAL);
+            var localNames = new ArrayList<>(getList(subroutine.locals()));
+            this.argNames = argNames;
+            locals = SymbolTable.create(localNames, LOCAL);
+            this.fields = fields;
         }
 
         public String write() {
             var functionDec = "function %s.%s %d".formatted(jackClass.name(), subroutine.name(),
                     subroutine.locals().size());
+            var header = switch (subroutine) {
+                case Subroutine.JackConstructor c -> """
+                        call Memory.alloc %d
+                        pop pointer 0""".formatted(jackClass.fields().size());
+                case Subroutine.JackFunction f -> {
+                    fields = SymbolTable.create(List.of(), FIELD);
+                    yield "";
+                }
+                case Subroutine.JackMethod m -> "";
+            };
             var statements = subroutine.statements()
                 .stream()
-                .map(s -> new StatementWriter(s, locals, argNames))
+                .map(s -> new StatementWriter(s, locals, argNames, fields))
                 .map(StatementWriter::write)
                 .collect(Collectors.joining("\n"));
-            return String.join("\n", functionDec, statements);
+            return String.join("\n", functionDec, header, statements);
         }
 
     }
@@ -76,11 +101,13 @@ public class ClassWriter {
         private final SymbolTable locals;
 
         private final SymbolTable arguments;
+        private final SymbolTable fields;
 
-        public StatementWriter(Statement statement, SymbolTable locals, SymbolTable arguments) {
+        public StatementWriter(Statement statement, SymbolTable locals, SymbolTable arguments, SymbolTable fields) {
             this.statement = statement;
             this.locals = locals;
             this.arguments = arguments;
+            this.fields = fields;
         }
 
         public String write() {
@@ -90,14 +117,19 @@ public class ClassWriter {
                         .stream()
                         .map(a -> new ExpressionWriter(locals, arguments).write(a))
                         .collect(Collectors.joining("\n"));
-                    var call = "call %s %d".formatted(s.subroutineName(), s.arguments().size());
-                    yield String.join("\n", push, call);
+                    var call = "call %s.%s %d".formatted(ClassWriter.this.jackClass.name(), s.subroutineName(), s.arguments().size());
+                    var popReturnToTemp = "pop temp 0";
+                    yield String.join("\n", push, call, popReturnToTemp);
                 }
                 case Term.ObjectSubroutineCall s -> {
                     var push = s.arguments()
                         .stream()
                         .map(a -> new ExpressionWriter(locals, arguments).write(a))
                         .collect(Collectors.joining("\n"));
+                    var target = arguments.resolve(s.target())
+                            .or(() -> locals.resolve(s.target()))
+                            .or(() -> fields.resolve(s.target()))
+                            .or(() -> statics.resolve(s.target()));
                     var call = "call %s.%s %d".formatted(s.target(), s.subroutineName(), s.arguments().size());
                     yield String.join("\n", push, call);
                 }
@@ -120,7 +152,7 @@ public class ClassWriter {
                 case Statement.ReturnStatement r -> {
                     var returnVal = r.returnValue()
                         .map(v -> new ExpressionWriter(locals, arguments).write(v))
-                        .orElse("");
+                        .orElse("push constant 0");
                     yield String.join("\n", returnVal, "return");
                 }
                 case Statement.WhileStatement(Expression condition, List<Statement> statements) -> {
@@ -132,7 +164,7 @@ public class ClassWriter {
                             goto %s.end""".formatted(label, label);
                     var blockLabel = "label %s.block".formatted(label);
                     var statementInstructions = statements.stream()
-                        .map(s -> new StatementWriter(s, locals, arguments).write())
+                        .map(s -> new StatementWriter(s, locals, arguments, fields).write())
                         .collect(Collectors.joining("\n"));
                     var gotoStart = "goto %s.start".formatted(label);
                     var endLabel = "label %s.end".formatted(label);
@@ -148,14 +180,14 @@ public class ClassWriter {
                     var ifTrueLabel = "label if-true.%s".formatted(ifCounter);
                     var ifTrueStatements = ifStatement.statements()
                         .stream()
-                        .map(s -> new StatementWriter(s, locals, arguments).write())
+                        .map(s -> new StatementWriter(s, locals, arguments, fields).write())
                         .collect(Collectors.joining("\n"));
                     var gotoEnd = "goto if-end.%s".formatted(ifCounter);
                     var elseLabel = "label if-not.%s".formatted(ifCounter);
                     var elseBlock = ifStatement.elseBlock()
                         .map(b -> b.statements()
                             .stream()
-                            .map(s -> new StatementWriter(s, locals, arguments).write())
+                            .map(s -> new StatementWriter(s, locals, arguments, fields).write())
                             .collect(Collectors.joining("\n")))
                         .orElse("");
                     var endLabel = "label if-end.%s".formatted(ifCounter);
@@ -215,6 +247,7 @@ public class ClassWriter {
                             push constant 0
                             not""";
                     case FALSE -> "push constant 0";
+                    case THIS -> "push pointer 0";
                     default -> throw new RuntimeException("Not implemented " + k.keyword());
                 };
                 case Term.NonIndexedVarName(String name) -> {
@@ -242,16 +275,30 @@ public class ClassWriter {
                         .stream()
                         .map(a -> new ExpressionWriter(locals, arguments).write(a))
                         .collect(Collectors.joining("\n"));
-                    var doCall = "call %s %d".formatted(call.subroutineName(), call.arguments().size());
+                    var doCall = "call %s.%s %d".formatted(ClassWriter.this.jackClass.name() ,call.subroutineName(), call.arguments().size());
                     yield String.join("\n", pushArguments, doCall);
                 }
                 case Term.ObjectSubroutineCall call -> {
+                    Optional<SymbolTable.Symbol> symbol = arguments.resolve(call.target())
+                            .or(() -> locals.resolve(call.target()))
+                            .or(() -> fields.resolve(call.target()))
+                            .or(() -> statics.resolve(call.target()));
+                    var pushObject = symbol
+                            .map(s -> "push %s %d".formatted(s.scope().name(), s.index()))
+                            .orElse("");
                     var pushArguments = call.arguments()
                         .stream()
                         .map(a -> new ExpressionWriter(locals, arguments).write(a))
                         .collect(Collectors.joining("\n"));
-                    var doCall = "call %s.%s %d".formatted(call.target(), call.subroutineName(),
-                            call.arguments().size());
+                    var target = symbol.map(s -> ClassWriter.this.jackClass.name())
+                            .orElse(call.target());
+
+                    int argSize = call.arguments().size();
+                    if (!pushObject.isBlank()) {
+                        argSize++;
+                    }
+                    var doCall = "call %s.%s %d".formatted(target, call.subroutineName(),
+                            argSize);
                     yield String.join("\n", pushArguments, doCall);
                 }
                 default -> throw new RuntimeException("Not implemented: " + term.getClass().getSimpleName());
